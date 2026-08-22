@@ -1,0 +1,441 @@
+// Distributed Job Scheduler — MySQL 8 is the persistent source of truth.
+// Redis/BullMQ (later phases) must never be the only copy of job state.
+//
+// Cascading: historical rows (executions, logs, DLQ) are Restrict so an
+// accidental parent delete cannot erase audit history. Membership and
+// heartbeat rows may cascade with their parent.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model SchemaMeta {
+  id          String   @id @default(cuid())
+  phase       String   @db.VarChar(64)
+  description String   @db.VarChar(512)
+  appliedAt   DateTime @default(now()) @db.DateTime(3)
+
+  @@map("schema_meta")
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+  PENDING
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum QueueStatus {
+  ACTIVE
+  PAUSED
+  DISABLED
+}
+
+enum RetryStrategy {
+  FIXED
+  LINEAR
+  EXPONENTIAL
+}
+
+enum JobType {
+  IMMEDIATE
+  DELAYED
+  SCHEDULED
+  RECURRING
+  BATCH
+}
+
+enum JobStatus {
+  QUEUED
+  SCHEDULED
+  CLAIMED
+  RUNNING
+  COMPLETED
+  FAILED
+  RETRYING
+  CANCELLED
+  DLQ
+}
+
+enum ExecutionStatus {
+  CLAIMED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  TIMEOUT
+}
+
+enum WorkerStatus {
+  STARTING
+  ONLINE
+  DRAINING
+  OFFLINE
+  FAILED
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+}
+
+enum ScheduleType {
+  DELAY
+  CRON
+  ONE_TIME
+}
+
+enum DlqResolution {
+  RETRIED
+  DISCARDED
+  RESOLVED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique @db.VarChar(255)
+  passwordHash String     @db.VarChar(255)
+  name         String     @db.VarChar(128)
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now()) @db.DateTime(3)
+  updatedAt    DateTime   @updatedAt @db.DateTime(3)
+  lastLoginAt  DateTime?  @db.DateTime(3)
+
+  memberships    OrganizationMember[]
+  createdJobs    Job[]                @relation("JobCreatedBy")
+  refreshTokens  RefreshToken[]
+
+  @@index([status])
+  @@map("users")
+}
+
+/// Refresh JWTs are persisted (hashed) so logout and rotation can revoke them.
+/// The JWT itself is not the source of truth for session validity.
+model RefreshToken {
+  id           String    @id @default(cuid())
+  userId       String
+  tokenHash    String    @unique @db.VarChar(64)
+  expiresAt    DateTime  @db.DateTime(3)
+  revokedAt    DateTime? @db.DateTime(3)
+  replacedById String?
+  userAgent    String?   @db.VarChar(512)
+  ipAddress    String?   @db.VarChar(64)
+  createdAt    DateTime  @default(now()) @db.DateTime(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(128)
+  slug      String   @unique @db.VarChar(128)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+
+  members       OrganizationMember[]
+  projects      Project[]
+  retryPolicies RetryPolicy[]
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String     @id @default(cuid())
+  organizationId String
+  userId         String
+  role           MemberRole
+  createdAt      DateTime   @default(now()) @db.DateTime(3)
+  updatedAt      DateTime   @updatedAt @db.DateTime(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
+model Project {
+  id             String        @id @default(cuid())
+  organizationId String
+  name           String        @db.VarChar(128)
+  slug           String        @db.VarChar(128)
+  description    String?       @db.VarChar(512)
+  status         ProjectStatus @default(ACTIVE)
+  createdAt      DateTime      @default(now()) @db.DateTime(3)
+  updatedAt      DateTime      @updatedAt @db.DateTime(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  queues       Queue[]
+  jobs         Job[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, status])
+  @@map("projects")
+}
+
+model RetryPolicy {
+  id             String        @id @default(cuid())
+  organizationId String
+  name           String        @db.VarChar(128)
+  strategy       RetryStrategy
+  maxAttempts    Int
+  initialDelayMs Int
+  maxDelayMs     Int
+  multiplier     Decimal       @default(2) @db.Decimal(8, 2)
+  createdAt      DateTime      @default(now()) @db.DateTime(3)
+  updatedAt      DateTime      @updatedAt @db.DateTime(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  queues       Queue[]
+  jobs         Job[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("retry_policies")
+}
+
+model Queue {
+  id              String      @id @default(cuid())
+  projectId       String
+  name            String      @db.VarChar(128)
+  description     String?     @db.VarChar(512)
+  status          QueueStatus @default(ACTIVE)
+  maxConcurrency  Int         @default(5)
+  defaultPriority Int         @default(0)
+  retryPolicyId   String
+  createdAt       DateTime    @default(now()) @db.DateTime(3)
+  updatedAt       DateTime    @updatedAt @db.DateTime(3)
+  pausedAt        DateTime?   @db.DateTime(3)
+
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  retryPolicy RetryPolicy @relation(fields: [retryPolicyId], references: [id], onDelete: Restrict)
+  jobs        Job[]
+  batches     JobBatch[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([status])
+  @@index([projectId, status])
+  @@map("queues")
+}
+
+/// Groups jobs submitted together via batch APIs. Atomic insert lands in the jobs phase.
+model JobBatch {
+  id              String   @id @default(cuid())
+  queueId         String
+  createdByUserId String?
+  createdAt       DateTime @default(now()) @db.DateTime(3)
+
+  queue Queue @relation(fields: [queueId], references: [id], onDelete: Restrict)
+  jobs  Job[]
+
+  @@index([queueId, createdAt])
+  @@map("job_batches")
+}
+
+model Job {
+  id              String    @id @default(cuid())
+  projectId       String
+  queueId         String
+  batchId         String?
+  createdByUserId String?
+  name            String    @db.VarChar(191)
+  type            JobType
+  /// Controlled task name resolved by the worker registry (e.g. send_email). Not raw JS.
+  taskType        String    @db.VarChar(64)
+  payload         Json
+  status          JobStatus @default(QUEUED)
+  priority        Int       @default(0)
+  attempts        Int       @default(0)
+  maxAttempts     Int
+  retryPolicyId   String?
+  idempotencyKey  String?   @db.VarChar(128)
+  scheduledAt     DateTime? @db.DateTime(3)
+  startedAt       DateTime? @db.DateTime(3)
+  completedAt     DateTime? @db.DateTime(3)
+  failedAt        DateTime? @db.DateTime(3)
+  createdAt       DateTime  @default(now()) @db.DateTime(3)
+  updatedAt       DateTime  @updatedAt @db.DateTime(3)
+  nextRetryAt     DateTime? @db.DateTime(3)
+  lockedAt        DateTime? @db.DateTime(3)
+  /// Public worker identity (Worker.workerId), used during atomic claim.
+  lockedBy        String?   @db.VarChar(128)
+  timeoutMs       Int?
+
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  queue          Queue        @relation(fields: [queueId], references: [id], onDelete: Restrict)
+  batch          JobBatch?    @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  createdBy      User?        @relation("JobCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  retryPolicy    RetryPolicy? @relation(fields: [retryPolicyId], references: [id], onDelete: Restrict)
+  lockedByWorker Worker?      @relation("JobLockedBy", fields: [lockedBy], references: [workerId], onDelete: SetNull)
+
+  executions    JobExecution[]
+  logs          JobLog[]
+  schedule      ScheduledJob?
+  deadLetterJob DeadLetterJob?
+
+  @@unique([projectId, idempotencyKey])
+  @@index([queueId, status])
+  @@index([queueId, priority])
+  @@index([queueId, createdAt])
+  @@index([status, scheduledAt])
+  @@index([status, nextRetryAt])
+  @@index([projectId])
+  @@index([idempotencyKey])
+  /// Worker claim path: eligible rows ordered by priority DESC, then time ASC.
+  @@index([queueId, status, priority, createdAt])
+  @@index([lockedBy, status])
+  @@index([taskType])
+  @@map("jobs")
+}
+
+model JobExecution {
+  id            String          @id @default(cuid())
+  jobId         String
+  workerId      String?
+  attemptNumber Int
+  status        ExecutionStatus
+  startedAt     DateTime?       @db.DateTime(3)
+  completedAt   DateTime?       @db.DateTime(3)
+  durationMs    Int?
+  errorCode     String?         @db.VarChar(64)
+  errorMessage  String?         @db.VarChar(1024)
+  errorStack    String?         @db.Text
+  result        Json?
+  createdAt     DateTime        @default(now()) @db.DateTime(3)
+
+  job               Job             @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  worker            Worker?         @relation(fields: [workerId], references: [id], onDelete: SetNull)
+  logs              JobLog[]
+  deadLetterAsFinal DeadLetterJob[]
+
+  @@unique([jobId, attemptNumber])
+  @@index([jobId])
+  @@index([workerId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("job_executions")
+}
+
+model Worker {
+  id              String       @id @default(cuid())
+  workerId        String       @unique @db.VarChar(128)
+  hostname        String       @db.VarChar(255)
+  processId       Int
+  version         String       @db.VarChar(32)
+  status          WorkerStatus @default(STARTING)
+  concurrency     Int
+  currentJobCount Int          @default(0)
+  lastHeartbeatAt DateTime?    @db.DateTime(3)
+  startedAt       DateTime     @default(now()) @db.DateTime(3)
+  stoppedAt       DateTime?    @db.DateTime(3)
+  createdAt       DateTime     @default(now()) @db.DateTime(3)
+  updatedAt       DateTime     @updatedAt @db.DateTime(3)
+
+  heartbeats WorkerHeartbeat[]
+  executions JobExecution[]
+  logs       JobLog[]
+  lockedJobs Job[]             @relation("JobLockedBy")
+
+  @@index([status])
+  @@index([lastHeartbeatAt])
+  @@map("workers")
+}
+
+model WorkerHeartbeat {
+  id              String   @id @default(cuid())
+  workerId        String
+  heartbeatAt     DateTime @default(now()) @db.DateTime(3)
+  currentJobCount Int      @default(0)
+  memoryUsage     BigInt?
+  cpuUsage        Decimal? @db.Decimal(8, 4)
+  metadata        Json?
+
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([workerId, heartbeatAt])
+  @@map("worker_heartbeats")
+}
+
+model JobLog {
+  id          String   @id @default(cuid())
+  jobId       String
+  executionId String?
+  workerId    String?
+  level       LogLevel
+  message     String   @db.VarChar(2048)
+  metadata    Json?
+  createdAt   DateTime @default(now()) @db.DateTime(3)
+
+  job       Job           @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  execution JobExecution? @relation(fields: [executionId], references: [id], onDelete: Restrict)
+  worker    Worker?       @relation(fields: [workerId], references: [id], onDelete: SetNull)
+
+  @@index([jobId, createdAt])
+  @@index([executionId, createdAt])
+  @@index([workerId, createdAt])
+  @@map("job_logs")
+}
+
+model ScheduledJob {
+  id             String       @id @default(cuid())
+  jobId          String       @unique
+  scheduleType   ScheduleType
+  cronExpression String?      @db.VarChar(64)
+  timezone       String       @default("UTC") @db.VarChar(64)
+  nextRunAt      DateTime     @db.DateTime(3)
+  lastRunAt      DateTime?    @db.DateTime(3)
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now()) @db.DateTime(3)
+  updatedAt      DateTime     @updatedAt @db.DateTime(3)
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Restrict)
+
+  @@index([active, nextRunAt])
+  @@map("scheduled_jobs")
+}
+
+model DeadLetterJob {
+  id               String         @id @default(cuid())
+  jobId            String         @unique
+  finalExecutionId String?
+  reason           String         @db.VarChar(255)
+  finalError       String?        @db.Text
+  attempts         Int
+  movedAt          DateTime       @default(now()) @db.DateTime(3)
+  resolvedAt       DateTime?      @db.DateTime(3)
+  resolution       DlqResolution?
+  createdAt        DateTime       @default(now()) @db.DateTime(3)
+  updatedAt        DateTime       @updatedAt @db.DateTime(3)
+
+  job            Job           @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  finalExecution JobExecution? @relation(fields: [finalExecutionId], references: [id], onDelete: Restrict)
+
+  @@index([jobId])
+  @@index([createdAt])
+  @@index([resolvedAt])
+  @@map("dead_letter_jobs")
+}

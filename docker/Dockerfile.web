@@ -1,0 +1,24 @@
+FROM node:20-alpine AS build
+WORKDIR /app
+ARG VITE_API_BASE_URL=/api
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+COPY package.json package-lock.json* ./
+COPY apps/web/package.json apps/web/package.json
+COPY apps/api/package.json apps/api/package.json
+COPY apps/worker/package.json apps/worker/package.json
+COPY packages/shared-types/package.json packages/shared-types/package.json
+COPY packages/eslint-config/package.json packages/eslint-config/package.json
+COPY packages/tsconfig/package.json packages/tsconfig/package.json
+RUN npm ci
+COPY . .
+RUN npm run build -w @djs/shared-types
+RUN npm run build -w @djs/web
+
+FROM nginx:1.27-alpine AS runner
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/apps/web/dist /usr/share/nginx/html
+# nginx image already runs as root for master; pin worker user via default
+HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=5 \
+  CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

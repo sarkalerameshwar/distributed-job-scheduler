@@ -1,0 +1,5 @@
+# Use when scaling workers (host port 3001 cannot bind more than once):
+#   docker compose -f docker-compose.yml -f docker-compose.scale.yml up -d --scale worker=3 --build
+services:
+  worker:
+    ports: !reset []

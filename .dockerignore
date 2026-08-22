@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.env
+coverage
+apps/web/dist
+apps/api/dist
+apps/worker/dist
+docker/grafana/data
+docker/prometheus/data
+*.md
+.cursor

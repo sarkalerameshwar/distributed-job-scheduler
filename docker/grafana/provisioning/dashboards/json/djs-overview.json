@@ -1,0 +1,112 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "rate(djs_http_requests_total[1m])",
+          "legendFormat": "{{method}} {{route}} {{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "API HTTP request rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "djs_queue_depth",
+          "legendFormat": "queue depth",
+          "refId": "A"
+        },
+        {
+          "expr": "djs_jobs_running",
+          "legendFormat": "running",
+          "refId": "B"
+        },
+        {
+          "expr": "djs_dlq_open",
+          "legendFormat": "open DLQ",
+          "refId": "C"
+        }
+      ],
+      "title": "Queue / DLQ gauges",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 8 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "djs_worker_active_jobs",
+          "legendFormat": "active",
+          "refId": "A"
+        }
+      ],
+      "title": "Worker active jobs",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 8 },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "djs_process_up",
+          "legendFormat": "api",
+          "refId": "A"
+        },
+        {
+          "expr": "djs_worker_up",
+          "legendFormat": "worker {{worker_id}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Process up",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 8 },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "rate(djs_worker_completions_total[5m])",
+          "legendFormat": "completions/s",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(djs_worker_failures_total[5m])",
+          "legendFormat": "failures/s",
+          "refId": "B"
+        }
+      ],
+      "title": "Worker throughput",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["djs", "job-scheduler"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "DJS Overview",
+  "uid": "djs-overview",
+  "version": 1
+}

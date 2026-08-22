@@ -1,0 +1,52 @@
+{
+  "name": "distributed-job-scheduler",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Production-inspired distributed job scheduling platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run docker:infra && concurrently -n api,worker,web -c blue,green,magenta \"npm run dev:api\" \"npm run dev:worker\" \"npm run dev:web\"",
+    "dev:api": "npm run start:dev -w @djs/api",
+    "dev:worker": "npm run start:dev -w @djs/worker",
+    "dev:web": "npm run dev -w @djs/web",
+    "build": "npm run build -w @djs/shared-types && npm run db:generate && npm run build -w @djs/api && npm run build -w @djs/worker && npm run build -w @djs/web",
+    "lint": "npm run lint -w @djs/api --if-present && npm run lint -w @djs/worker --if-present && npm run lint -w @djs/web --if-present",
+    "typecheck": "npm run typecheck -w @djs/shared-types && npm run typecheck -w @djs/api && npm run typecheck -w @djs/worker && npm run typecheck -w @djs/web",
+    "test": "npm run test -w @djs/shared-types --if-present && npm run test -w @djs/api --if-present && npm run test -w @djs/worker --if-present",
+    "test:e2e": "npm run test:e2e -w @djs/api && npm run test:e2e -w @djs/worker",
+    "test:ci": "npm run typecheck && npm run test && npm run test:e2e",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "docker:infra": "docker compose up -d mysql redis || docker-compose up -d mysql redis",
+    "docker:up": "docker compose up -d --build || docker-compose up -d --build",
+    "docker:up:obs": "docker compose --profile observability up -d --build || docker-compose --profile observability up -d --build",
+    "docker:down": "docker compose down || docker-compose down",
+    "docker:seed": "docker compose run --rm --entrypoint /sbin/tini api -- npx tsx prisma/seed.ts || docker-compose run --rm --entrypoint /sbin/tini api -- npx tsx prisma/seed.ts",
+    "docker:scale-workers": "docker compose -f docker-compose.yml -f docker-compose.scale.yml up -d --scale worker=3 --build || docker-compose -f docker-compose.yml -f docker-compose.scale.yml up -d --scale worker=3 --build",
+    "docker:logs:api": "docker compose logs -f api || docker-compose logs -f api",
+    "docker:logs:worker": "docker compose logs -f worker || docker-compose logs -f worker"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "concurrently": "^9.1.2",
+    "prisma": "^6.14.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.14.0",
+    "bcryptjs": "^2.4.3"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}

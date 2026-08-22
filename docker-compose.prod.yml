@@ -1,0 +1,18 @@
+# Production-lean overlay: do not publish MySQL/Redis to the host.
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile observability up -d --build
+services:
+  mysql:
+    ports: !reset []
+  redis:
+    ports: !reset []
+  api:
+    environment:
+      NODE_ENV: production
+      SEED_ON_START: "false"
+  worker:
+    environment:
+      NODE_ENV: production
+    ports: !reset []
+  web:
+    environment:
+      NODE_ENV: production
