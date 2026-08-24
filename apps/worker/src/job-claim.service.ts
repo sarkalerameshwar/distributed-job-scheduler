@@ -55,15 +55,30 @@ export class JobClaimService {
 
   /** Move due scheduled/retrying jobs into QUEUED so they become claimable. */
   async promoteDueJobs(): Promise<number> {
-    const locked = await this.locks.withLock(PROMOTE_LOCK_KEY, PROMOTE_LOCK_TTL_MS, async () => {
+    const run = async () => {
       const now = new Date();
-      const scheduled = await this.prisma.job.updateMany({
+      // Only promote when the schedule is still active (paused CRON/DELAY must not fire).
+      const dueScheduled = await this.prisma.job.findMany({
         where: {
           status: "SCHEDULED",
           scheduledAt: { lte: now },
+          schedule: { is: { active: true } },
         },
-        data: { status: "QUEUED" },
+        select: { id: true },
+        take: 200,
       });
+      let scheduledCount = 0;
+      if (dueScheduled.length > 0) {
+        const result = await this.prisma.job.updateMany({
+          where: {
+            id: { in: dueScheduled.map((j) => j.id) },
+            status: "SCHEDULED",
+          },
+          data: { status: "QUEUED" },
+        });
+        scheduledCount = result.count;
+      }
+
       const retrying = await this.prisma.job.updateMany({
         where: {
           status: "RETRYING",
@@ -71,13 +86,28 @@ export class JobClaimService {
         },
         data: { status: "QUEUED", nextRetryAt: null },
       });
-      return scheduled.count + retrying.count;
-    });
+      return scheduledCount + retrying.count;
+    };
 
-    if (!locked.acquired) {
-      return 0;
+    let count = 0;
+    try {
+      const locked = await this.locks.withLock(PROMOTE_LOCK_KEY, PROMOTE_LOCK_TTL_MS, run);
+      if (!locked.acquired) {
+        // Another worker is promoting this interval — skip.
+        return 0;
+      }
+      count = locked.result ?? 0;
+    } catch (error) {
+      // Redis lock unavailable: still promote so schedules keep firing.
+      this.logger.warn(
+        JSON.stringify({
+          msg: "promote_lock_fallback",
+          error: error instanceof Error ? error.message : "unknown",
+        }),
+      );
+      count = await run();
     }
-    const count = locked.result ?? 0;
+
     if (count > 0) {
       void this.dispatchWake.wake({ reason: "promote", count });
     }

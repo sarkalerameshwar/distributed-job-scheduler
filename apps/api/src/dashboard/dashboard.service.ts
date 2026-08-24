@@ -62,11 +62,11 @@ export class DashboardService {
           where: { projectId: { in: projectIds } },
           _count: { _all: true },
         }),
-        this.prisma.job.count({
+        this.prisma.jobExecution.count({
           where: {
-            projectId: { in: projectIds },
             status: "COMPLETED",
             completedAt: { gte: sinceHour },
+            job: { projectId: { in: projectIds } },
           },
         }),
         this.prisma.job.count({
@@ -92,11 +92,11 @@ export class DashboardService {
           orderBy: { updatedAt: "desc" },
           take: 12,
         }),
-        this.prisma.job.findMany({
+        this.prisma.jobExecution.findMany({
           where: {
-            projectId: { in: projectIds },
             status: "COMPLETED",
             completedAt: { gte: sinceDay },
+            job: { projectId: { in: projectIds } },
           },
           select: { completedAt: true },
         }),
@@ -163,11 +163,11 @@ export class DashboardService {
         const depth =
           (counts.QUEUED ?? 0) + (counts.SCHEDULED ?? 0) + (counts.RETRYING ?? 0);
         const running = (counts.RUNNING ?? 0) + (counts.CLAIMED ?? 0);
-        const throughputLastHour = await this.prisma.job.count({
+        const throughputLastHour = await this.prisma.jobExecution.count({
           where: {
-            queueId: queue.id,
             status: "COMPLETED",
             completedAt: { gte: sinceHour },
+            job: { queueId: queue.id },
           },
         });
         return {

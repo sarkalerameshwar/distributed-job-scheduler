@@ -107,6 +107,13 @@ export type WorkerRow = {
   stoppedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  activeJobs?: Array<{
+    id: string;
+    name: string;
+    status: string;
+    taskType: string;
+    queueName: string;
+  }>;
 };
 
 export type DashboardOverview = {
@@ -209,6 +216,12 @@ export type Job = {
   maxAttempts: number;
   idempotencyKey: string | null;
   scheduledAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  failedAt: string | null;
+  nextRetryAt: string | null;
+  lockedAt: string | null;
+  lockedBy: string | null;
   timeoutMs: number | null;
   createdAt: string;
   queueName?: string;

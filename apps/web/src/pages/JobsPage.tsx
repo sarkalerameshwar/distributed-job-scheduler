@@ -33,7 +33,7 @@ export function JobsPage() {
   const [taskType, setTaskType] = useState<(typeof TASK_TYPES)[number]>("send_email");
   const [jobType, setJobType] = useState("IMMEDIATE");
   const [delayMs, setDelayMs] = useState("60000");
-  const [cron, setCron] = useState("0 9 * * *");
+  const [cron, setCron] = useState("*/1 * * * *");
   const [error, setError] = useState<string | null>(null);
 
   const queueOptions = useMemo(() => queues.data?.items ?? [], [queues.data]);
@@ -52,7 +52,7 @@ export function JobsPage() {
         body.delayMs = Number(delayMs);
       }
       if (jobType === "SCHEDULED") {
-        body.scheduledAt = new Date(Date.now() + 3_600_000).toISOString();
+        body.scheduledAt = new Date(Date.now() + 60_000).toISOString();
       }
       if (jobType === "RECURRING") {
         body.cronExpression = cron;
@@ -61,6 +61,7 @@ export function JobsPage() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
     },
     onError: (err: unknown) => setError(err instanceof ApiRequestError ? err.message : "Create failed"),
   });
@@ -98,7 +99,7 @@ export function JobsPage() {
           }}
         >
           <option value="">All statuses</option>
-          {["QUEUED", "SCHEDULED", "RUNNING", "COMPLETED", "FAILED", "RETRYING", "DLQ", "CANCELLED"].map((s) => (
+          {["QUEUED", "SCHEDULED", "CLAIMED", "RUNNING", "COMPLETED", "FAILED", "RETRYING", "DLQ", "CANCELLED"].map((s) => (
             <option key={s} value={s}>
               {s}
             </option>
@@ -153,11 +154,16 @@ export function JobsPage() {
         ) : null}
         {jobType === "RECURRING" ? (
           <input
-            className="field"
+            className="field font-mono sm:col-span-2"
             value={cron}
             onChange={(e) => setCron(e.target.value)}
-            placeholder="Cron"
+            placeholder="Cron (default every minute: */1 * * * *)"
           />
+        ) : null}
+        {jobType === "SCHEDULED" ? (
+          <p className="text-xs text-steel sm:col-span-2">
+            One-shot schedule defaults to ~1 minute from now (workers promote when due).
+          </p>
         ) : null}
         <button className="btn-primary sm:col-span-2" type="submit">
           Create job
@@ -177,6 +183,7 @@ export function JobsPage() {
                 <p className="font-medium text-ink">{job.name}</p>
                 <p className="font-mono text-xs text-steel">
                   {job.taskType} · {job.type} · p{job.priority} · {job.queueName}
+                  {job.lockedBy ? ` · worker ${job.lockedBy}` : ""}
                 </p>
               </div>
               <StatusPill status={job.status} />

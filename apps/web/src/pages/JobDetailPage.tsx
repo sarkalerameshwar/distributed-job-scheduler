@@ -103,6 +103,14 @@ export function JobDetailPage() {
         <Meta label="Attempts" value={`${job.data.attempts} / ${job.data.maxAttempts}`} />
         <Meta label="Timeout" value={job.data.timeoutMs != null ? `${job.data.timeoutMs} ms` : "—"} />
         <Meta label="Scheduled" value={job.data.scheduledAt ?? "—"} />
+        <Meta
+          label="Worker"
+          value={
+            job.data.lockedBy
+              ? `${job.data.lockedBy}${job.data.lockedAt ? ` · since ${job.data.lockedAt}` : ""}`
+              : "—"
+          }
+        />
         <Meta label="Idempotency" value={job.data.idempotencyKey ?? "—"} />
         <Meta
           label="Cron"

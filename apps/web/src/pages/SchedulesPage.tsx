@@ -117,23 +117,31 @@ function ScheduleRow(props: {
   onResume: () => void;
 }) {
   const { row, onPause, onResume } = props;
+  const nextLabel = formatWhen(row.nextRunAt);
+  const lastLabel = row.lastRunAt ? formatWhen(row.lastRunAt) : null;
+  const inFlight = ["QUEUED", "CLAIMED", "RUNNING"].includes(row.job.status);
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border border-line bg-surface px-4 py-3">
       <div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link to={`/jobs/${row.jobId}`} className="font-medium text-ink hover:text-pine">
             {row.job.name}
           </Link>
           <StatusPill status={row.active ? "ACTIVE" : "PAUSED"} />
+          <StatusPill status={row.job.status} />
           <span className="font-mono text-[11px] text-steel">{row.scheduleType}</span>
         </div>
         <p className="mt-1 font-mono text-xs text-steel">
-          {row.cronExpression ? `${row.cronExpression} · ${row.timezone}` : row.timezone} · next{" "}
-          {row.nextRunAt}
-          {row.lastRunAt ? ` · last ${row.lastRunAt}` : ""}
+          {row.cronExpression ? `${row.cronExpression} · ${row.timezone}` : row.timezone}
+          {inFlight ? " · firing now" : ` · next ${nextLabel}`}
+          {lastLabel ? ` · last ${lastLabel}` : " · never run"}
         </p>
         <p className="mt-0.5 font-mono text-[11px] text-steel">
-          {row.job.projectName} / {row.job.queueName} · job {row.job.status}
+          {row.job.projectName} / {row.job.queueName}
+          {row.scheduleType === "CRON"
+            ? " · recurring jobs return to SCHEDULED after each successful run"
+            : ""}
         </p>
       </div>
       <div className="flex gap-2">
@@ -148,7 +156,7 @@ function ScheduleRow(props: {
         ) : (
           <button
             type="button"
-            className="border border-pine/40 px-3 py-1.5 text-xs text-emerald-200"
+            className="border border-pine/40 px-3 py-1.5 text-xs text-pine"
             onClick={onResume}
           >
             Resume
@@ -157,4 +165,10 @@ function ScheduleRow(props: {
       </div>
     </div>
   );
+}
+
+function formatWhen(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString();
 }

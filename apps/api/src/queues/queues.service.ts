@@ -150,8 +150,8 @@ export class QueuesService {
     }
 
     const since = new Date(Date.now() - 60 * 60 * 1000);
-    const completedLastHour = await this.prisma.job.count({
-      where: { queueId: id, status: "COMPLETED", completedAt: { gte: since } },
+    const completedLastHour = await this.prisma.jobExecution.count({
+      where: { status: "COMPLETED", completedAt: { gte: since }, job: { queueId: id } },
     });
 
     const duration = await this.prisma.jobExecution.aggregate({

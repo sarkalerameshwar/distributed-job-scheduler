@@ -191,7 +191,9 @@ export class JobProcessorService {
       });
 
       const schedule = await tx.scheduledJob.findUnique({ where: { jobId: job.id } });
-      if (schedule?.active && schedule.scheduleType === "CRON" && schedule.cronExpression) {
+      if (schedule?.scheduleType === "CRON" && schedule.cronExpression) {
+        // Always advance nextRunAt after a successful CRON run. If the schedule was
+        // paused mid-flight, keep the job COMPLETED and mark lastRunAt; resume will re-arm.
         const nextRunAt = getNextCronRun(schedule.cronExpression, {
           from: new Date(),
           timezone: schedule.timezone || "UTC",
@@ -200,34 +202,47 @@ export class JobProcessorService {
           where: { id: schedule.id },
           data: { lastRunAt: new Date(), nextRunAt },
         });
-        await tx.job.update({
-          where: { id: job.id },
-          data: {
-            status: "SCHEDULED",
-            scheduledAt: nextRunAt,
-            completedAt: null,
-            attempts: 0,
-            startedAt: null,
-            failedAt: null,
-            nextRetryAt: null,
-            lockedAt: null,
-            lockedBy: null,
-          },
-        });
-        await tx.jobLog.create({
-          data: {
-            jobId: job.id,
-            executionId: job.executionId,
-            workerId: this.ctx.dbId,
-            level: "INFO",
-            message: "Recurring job rescheduled",
-            metadata: {
-              nextRunAt: nextRunAt.toISOString(),
-              cronExpression: schedule.cronExpression,
-              timezone: schedule.timezone,
+        if (schedule.active) {
+          await tx.job.update({
+            where: { id: job.id },
+            data: {
+              status: "SCHEDULED",
+              scheduledAt: nextRunAt,
+              completedAt: null,
+              attempts: 0,
+              startedAt: null,
+              failedAt: null,
+              nextRetryAt: null,
+              lockedAt: null,
+              lockedBy: null,
             },
-          },
-        });
+          });
+          await tx.jobLog.create({
+            data: {
+              jobId: job.id,
+              executionId: job.executionId,
+              workerId: this.ctx.dbId,
+              level: "INFO",
+              message: "Recurring job rescheduled",
+              metadata: {
+                nextRunAt: nextRunAt.toISOString(),
+                cronExpression: schedule.cronExpression,
+                timezone: schedule.timezone,
+              },
+            },
+          });
+        } else {
+          await tx.jobLog.create({
+            data: {
+              jobId: job.id,
+              executionId: job.executionId,
+              workerId: this.ctx.dbId,
+              level: "WARN",
+              message: "CRON run completed while schedule paused — not rescheduled onto the queue",
+              metadata: { nextRunAt: nextRunAt.toISOString() },
+            },
+          });
+        }
       } else if (schedule && (schedule.scheduleType === "DELAY" || schedule.scheduleType === "ONE_TIME")) {
         await tx.scheduledJob.update({
           where: { id: schedule.id },
