@@ -26,6 +26,7 @@ Final documentation set for the Distributed Job Scheduler (Phase 18).
 | [heartbeat-recovery.md](./heartbeat-recovery.md) | Stale worker recovery |
 | [dashboard.md](./dashboard.md) | Ops overview UI/API |
 | [realtime.md](./realtime.md) | Socket.IO + Redis bus |
+| [rate-limit-dispatch.md](./rate-limit-dispatch.md) | Rate limits, Redis locks, dispatch wake |
 | [metrics-health.md](./metrics-health.md) | Health + Prometheus |
 | [testing.md](./testing.md) | Unit, e2e, CI |
 

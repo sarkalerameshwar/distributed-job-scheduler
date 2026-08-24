@@ -10,6 +10,7 @@ import { JobProcessorService } from "./job-processor.service";
 import { StaleRecoveryService } from "./stale-recovery.service";
 import { RealtimePublisher } from "./realtime.publisher";
 import { WorkerMetricsService } from "./worker-metrics.service";
+import { DispatchWakeSubscriber } from "./dispatch-wake.subscriber";
 
 const startedAt = Date.now();
 
@@ -18,6 +19,8 @@ export class WorkerService implements OnModuleInit {
   private readonly logger = new Logger(WorkerService.name);
   private pollTimer?: NodeJS.Timeout;
   private recoveryTimer?: NodeJS.Timeout;
+  private claimTickRunning = false;
+  private claimTickQueued = false;
 
   constructor(
     private readonly env: EnvService,
@@ -30,6 +33,7 @@ export class WorkerService implements OnModuleInit {
     private readonly recovery: StaleRecoveryService,
     private readonly realtime: RealtimePublisher,
     private readonly metrics: WorkerMetricsService,
+    private readonly dispatchWake: DispatchWakeSubscriber,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -45,6 +49,7 @@ export class WorkerService implements OnModuleInit {
         }),
       );
     } else {
+      this.dispatchWake.onWake(() => this.requestImmediateClaimTick());
       this.startPolling();
     }
     this.logger.log(
@@ -56,12 +61,25 @@ export class WorkerService implements OnModuleInit {
         heartbeatTimeoutMs: this.env.heartbeatTimeoutMs,
         recoveryIntervalMs: this.env.recoveryIntervalMs,
         claimEnabled: process.env.WORKER_DISABLE_CLAIM !== "true",
+        eventDrivenDispatch: process.env.WORKER_DISABLE_CLAIM !== "true",
       }),
     );
   }
 
   get identity() {
     return this.ctx.identity;
+  }
+
+  /** Event-driven wake: coalesce bursts into one claim tick. */
+  requestImmediateClaimTick(): void {
+    if (this.ctx.draining || process.env.WORKER_DISABLE_CLAIM === "true") {
+      return;
+    }
+    if (this.claimTickRunning) {
+      this.claimTickQueued = true;
+      return;
+    }
+    void this.runClaimTick();
   }
 
   private async register(): Promise<void> {
@@ -110,33 +128,44 @@ export class WorkerService implements OnModuleInit {
   }
 
   private startPolling(): void {
-    const tick = async () => {
-      if (this.ctx.draining) {
-        return;
-      }
-      try {
-        await this.claim.promoteDueJobs();
-        while (!this.ctx.draining && this.ctx.currentJobCount < this.env.concurrency) {
-          const job = await this.claim.claimNext();
-          if (!job) {
-            break;
-          }
-          // Fire-and-forget; concurrency is gated by activeJobIds + claim loop.
-          void this.processor.process(job);
-        }
-      } catch (error) {
-        this.logger.error(
-          JSON.stringify({
-            msg: "poll_error",
-            error: error instanceof Error ? error.message : "unknown",
-          }),
-        );
-      }
-    };
-
-    void tick();
-    this.pollTimer = setInterval(() => void tick(), this.env.pollIntervalMs);
+    void this.runClaimTick();
+    this.pollTimer = setInterval(() => void this.runClaimTick(), this.env.pollIntervalMs);
     this.pollTimer.unref();
+  }
+
+  private async runClaimTick(): Promise<void> {
+    if (this.claimTickRunning) {
+      this.claimTickQueued = true;
+      return;
+    }
+    this.claimTickRunning = true;
+    try {
+      do {
+        this.claimTickQueued = false;
+        if (this.ctx.draining) {
+          break;
+        }
+        try {
+          await this.claim.promoteDueJobs();
+          while (!this.ctx.draining && this.ctx.currentJobCount < this.env.concurrency) {
+            const job = await this.claim.claimNext();
+            if (!job) {
+              break;
+            }
+            void this.processor.process(job);
+          }
+        } catch (error) {
+          this.logger.error(
+            JSON.stringify({
+              msg: "poll_error",
+              error: error instanceof Error ? error.message : "unknown",
+            }),
+          );
+        }
+      } while (this.claimTickQueued && !this.ctx.draining);
+    } finally {
+      this.claimTickRunning = false;
+    }
   }
 
   private startRecovery(): void {

@@ -58,8 +58,10 @@ flowchart TD
 
 - Health checks for API/worker readiness
 - Pub/Sub channel `djs:realtime` so workers publish and the API broadcasts to Socket.IO rooms
+- Pub/Sub channel `djs:dispatch` wake hints so workers claim sooner after enqueue (poll remains fallback)
+- Fixed-window rate-limit counters and short-lived locks for recovery/promote sweeps
 
-Job dispatch is **not** Redis-backed; see [design-decisions.md](./design-decisions.md).
+Job **claim state** is **not** Redis-backed; see [design-decisions.md](./design-decisions.md) and [rate-limit-dispatch.md](./rate-limit-dispatch.md).
 
 ## Further reading
 

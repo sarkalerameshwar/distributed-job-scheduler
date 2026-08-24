@@ -11,6 +11,7 @@ describe("WorkerMetricsService", () => {
     metrics.incRecovery(3);
     metrics.incHeartbeat();
     metrics.incRealtimePublish();
+    metrics.incDispatchWake();
 
     const text = metrics.render(2, false, 'worker-a"x');
     expect(text).toContain("djs_worker_up{worker_id=\"worker-a\\\"x\"} 1");
@@ -22,6 +23,7 @@ describe("WorkerMetricsService", () => {
     expect(text).toContain("djs_worker_recoveries_total 3");
     expect(text).toContain("djs_worker_heartbeats_total 1");
     expect(text).toContain("djs_worker_realtime_publishes_total 1");
+    expect(text).toContain("djs_worker_dispatch_wakes_total 1");
   });
 
   it("marks worker down while draining", () => {

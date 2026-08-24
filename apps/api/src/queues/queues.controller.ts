@@ -3,6 +3,8 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
+import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
+import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
 import { QueuesService } from "./queues.service";
 import { CreateQueueDto, ListQueuesQueryDto, UpdateQueueDto } from "./dto/queue.dto";
 
@@ -14,6 +16,8 @@ export class QueuesController {
   constructor(private readonly queues: QueuesService) {}
 
   @Post()
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "queues.mutate", limit: 30 })
   @ApiOperation({ summary: "Create a queue (ADMIN+)" })
   async create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateQueueDto) {
     return { success: true, data: await this.queues.create(user.id, dto) };
@@ -38,24 +42,32 @@ export class QueuesController {
   }
 
   @Patch(":id")
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "queues.mutate", limit: 30 })
   @ApiOperation({ summary: "Update queue configuration (ADMIN+)" })
   async update(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() dto: UpdateQueueDto) {
     return { success: true, data: await this.queues.update(user.id, id, dto) };
   }
 
   @Post(":id/pause")
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "queues.mutate", limit: 30 })
   @ApiOperation({ summary: "Pause a queue — running jobs may finish" })
   async pause(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
     return { success: true, data: await this.queues.pause(user.id, id) };
   }
 
   @Post(":id/resume")
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "queues.mutate", limit: 30 })
   @ApiOperation({ summary: "Resume a paused queue" })
   async resume(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
     return { success: true, data: await this.queues.resume(user.id, id) };
   }
 
   @Post(":id/archive")
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "queues.mutate", limit: 30 })
   @ApiOperation({ summary: "Archive (disable) a queue without deleting history" })
   async archive(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
     return { success: true, data: await this.queues.archive(user.id, id) };

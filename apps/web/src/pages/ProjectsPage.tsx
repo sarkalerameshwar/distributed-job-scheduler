@@ -33,7 +33,7 @@ export function ProjectsPage() {
       <Header title="Projects" subtitle="Projects isolate queues. ADMIN or OWNER can create them." />
       <div className="flex flex-wrap gap-3">
         <select
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+          className="field"
           value={selectedOrg}
           onChange={(e) => setOrganizationId(e.target.value)}
         >
@@ -52,18 +52,18 @@ export function ProjectsPage() {
           }}
         >
           <input
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className="field"
             placeholder="Project name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
-          <button className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950" type="submit">
+          <button className="btn-primary" type="submit">
             Create
           </button>
         </form>
       </div>
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+      {error ? <p className="text-sm text-signal-danger">{error}</p> : null}
       <ResourceList
         loading={projects.isLoading}
         error={projects.error}
@@ -75,13 +75,13 @@ export function ProjectsPage() {
             <Link
               key={project.id}
               to={`/projects/${project.id}`}
-              className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 hover:border-cyan-800"
+              className="panel p-5 hover:border-pine/50 hover:shadow-card"
             >
               <div className="flex items-center justify-between">
-                <p className="font-medium text-white">{project.name}</p>
+                <p className="font-medium text-ink">{project.name}</p>
                 <StatusPill status={project.status} />
               </div>
-              <p className="mt-1 font-mono text-xs text-slate-500">
+              <p className="mt-1 font-mono text-xs text-steel">
                 {project.organizationName} · {project.queueCount ?? 0} queues
               </p>
             </Link>

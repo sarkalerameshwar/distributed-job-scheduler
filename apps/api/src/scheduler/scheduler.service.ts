@@ -5,12 +5,14 @@ import { RbacService } from "../auth/rbac.service";
 import { AppError } from "../common/errors/app-error";
 import { paginatedResult, toSkipTake } from "../common/pagination";
 import type { ListSchedulesQueryDto, PreviewCronDto, UpdateScheduleDto } from "./dto/schedule.dto";
+import { DispatchWakePublisher } from "../realtime/dispatch-wake.publisher";
 
 @Injectable()
 export class SchedulerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly rbac: RbacService,
+    private readonly dispatchWake: DispatchWakePublisher,
   ) {}
 
   async list(userId: string, query: ListSchedulesQueryDto) {
@@ -113,6 +115,13 @@ export class SchedulerService {
       return schedule;
     });
 
+    if (nextRunAt.getTime() <= Date.now()) {
+      void this.dispatchWake.wake({
+        reason: "schedule.resume",
+        queueId: row.job.queueId,
+        jobId: row.jobId,
+      });
+    }
     return this.toView(updated);
   }
 

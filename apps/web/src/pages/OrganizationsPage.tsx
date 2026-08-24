@@ -32,17 +32,17 @@ export function OrganizationsPage() {
         }}
       >
         <input
-          className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+          className="field flex-1"
           placeholder="Organization name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
         />
-        <button className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950" type="submit">
+        <button className="btn-primary" type="submit">
           Create
         </button>
       </form>
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+      {error ? <p className="text-sm text-signal-danger">{error}</p> : null}
       <ResourceList
         loading={orgs.isLoading}
         error={orgs.error}
@@ -63,10 +63,10 @@ function OrgCard({ org }: { org: Organization }) {
   return (
     <Link
       to={`/organizations/${org.id}`}
-      className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 transition hover:border-cyan-800"
+      className="panel p-5 transition hover:border-pine/50 hover:shadow-card"
     >
-      <p className="font-medium text-white">{org.name}</p>
-      <p className="mt-1 font-mono text-xs text-slate-500">
+      <p className="font-medium text-ink">{org.name}</p>
+      <p className="mt-1 font-mono text-xs text-steel">
         {org.slug} · {org.role}
       </p>
     </Link>

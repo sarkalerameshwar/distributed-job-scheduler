@@ -34,10 +34,10 @@ export function QueueDetailPage() {
   });
 
   if (queue.isLoading) {
-    return <div className="text-sm text-slate-400">Loading queue…</div>;
+    return <div className="text-sm text-steel">Loading queue…</div>;
   }
   if (!queue.data) {
-    return <div className="text-sm text-rose-300">Queue not found.</div>;
+    return <div className="text-sm text-signal-danger">Queue not found.</div>;
   }
 
   const actionError =
@@ -58,7 +58,7 @@ export function QueueDetailPage() {
           <StatusPill status={queue.data.status} />
           {queue.data.status === "PAUSED" ? (
             <button
-              className="rounded-lg bg-cyan-500 px-3 py-1.5 text-sm font-medium text-slate-950"
+              className="bg-pine px-3 py-1.5 text-sm font-medium text-surface"
               type="button"
               onClick={() => resume.mutate()}
             >
@@ -66,7 +66,7 @@ export function QueueDetailPage() {
             </button>
           ) : (
             <button
-              className="rounded-lg border border-amber-800 px-3 py-1.5 text-sm text-amber-200"
+              className="border border-signal-warn/40 px-3 py-1.5 text-sm text-signal-warn"
               type="button"
               onClick={() => pause.mutate()}
             >
@@ -75,7 +75,7 @@ export function QueueDetailPage() {
           )}
         </div>
       </div>
-      {actionError ? <p className="text-sm text-rose-300">{actionError}</p> : null}
+      {actionError ? <p className="text-sm text-signal-danger">{actionError}</p> : null}
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Depth" value={stats.data?.depth ?? "—"} />
         <Stat label="Running" value={stats.data?.running ?? "—"} />
@@ -88,13 +88,13 @@ export function QueueDetailPage() {
         <Stat label="DLQ" value={stats.data?.counts.DLQ ?? "—"} />
       </div>
       {stats.data ? (
-        <div className="rounded-xl border border-slate-800 p-5">
-          <p className="text-sm font-medium text-slate-200">Job status counts</p>
-          <dl className="mt-3 grid grid-cols-2 gap-2 font-mono text-xs text-slate-400 sm:grid-cols-3">
+        <div className="border border-line p-5">
+          <p className="text-sm font-medium text-ink">Job status counts</p>
+          <dl className="mt-3 grid grid-cols-2 gap-2 font-mono text-xs text-steel sm:grid-cols-3">
             {Object.entries(stats.data.counts).map(([status, count]) => (
-              <div key={status} className="flex justify-between rounded-lg bg-slate-900 px-3 py-2">
+              <div key={status} className="flex justify-between bg-paper px-3 py-2">
                 <dt>{status}</dt>
-                <dd className="text-slate-200">{count}</dd>
+                <dd className="text-ink">{count}</dd>
               </div>
             ))}
           </dl>
@@ -106,9 +106,9 @@ export function QueueDetailPage() {
 
 function Stat(props: { label: string; value: string | number }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-      <p className="font-mono text-[11px] uppercase tracking-wide text-slate-500">{props.label}</p>
-      <p className="mt-2 text-lg text-white">{props.value}</p>
+    <div className="panel p-4">
+      <p className="font-mono text-[11px] uppercase tracking-wide text-steel">{props.label}</p>
+      <p className="mt-2 text-lg text-ink">{props.value}</p>
     </div>
   );
 }

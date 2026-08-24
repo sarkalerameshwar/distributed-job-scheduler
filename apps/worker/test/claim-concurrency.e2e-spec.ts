@@ -125,11 +125,19 @@ describe("Atomic claim concurrency (e2e)", () => {
       },
     } as WorkerContext;
 
-    return new JobClaimService(prisma as unknown as PrismaService, ctx, {
-      jobUpdated: async () => undefined,
-    } as never, {
-      incClaim: () => undefined,
-    } as never);
+    return new JobClaimService(
+      prisma as unknown as PrismaService,
+      ctx,
+      { jobUpdated: async () => undefined } as never,
+      { incClaim: () => undefined } as never,
+      {
+        withLock: async <T>(_key: string, _ttl: number, fn: () => Promise<T>) => ({
+          acquired: true,
+          result: await fn(),
+        }),
+      } as never,
+      { wake: async () => undefined } as never,
+    );
   }
 
   async function registerWorker(label: string): Promise<{ service: JobClaimService; dbId: string }> {

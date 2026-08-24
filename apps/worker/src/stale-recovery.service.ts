@@ -5,6 +5,7 @@ import { EnvService } from "./config/env.service";
 import { RetryService } from "./retry.service";
 import { RealtimePublisher } from "./realtime.publisher";
 import { WorkerMetricsService } from "./worker-metrics.service";
+import { DistributedLockService, STALE_RECOVERY_LOCK_KEY } from "./distributed-lock.service";
 
 export type RecoveryStats = {
   staleWorkers: number;
@@ -15,8 +16,9 @@ export type RecoveryStats = {
 /**
  * Phase 12 — detect workers that stopped heartbeating and free their in-flight jobs.
  *
- * Any online worker may run this; per-job recovery uses conditional UPDATEs so
- * concurrent recoverers do not double-apply outcomes.
+ * Any online worker may run this; a Redis lock elects one recoverer per interval.
+ * Per-job recovery still uses conditional UPDATEs so concurrent recoverers cannot
+ * double-apply outcomes if the lock is skipped or expired.
  */
 @Injectable()
 export class StaleRecoveryService {
@@ -29,13 +31,23 @@ export class StaleRecoveryService {
     private readonly retry: RetryService,
     private readonly realtime: RealtimePublisher,
     private readonly metrics: WorkerMetricsService,
+    private readonly locks: DistributedLockService,
   ) {}
 
   async run(): Promise<RecoveryStats> {
-    const staleWorkers = await this.markStaleWorkers();
-    const recoveredJobs = await this.recoverOrphanedJobs();
-    const prunedHeartbeats = await this.pruneHeartbeatsIfDue();
+    const ttlMs = Math.max(this.env.recoveryIntervalMs * 2, 15_000);
+    const locked = await this.locks.withLock(STALE_RECOVERY_LOCK_KEY, ttlMs, async () => {
+      const staleWorkers = await this.markStaleWorkers();
+      const recoveredJobs = await this.recoverOrphanedJobs();
+      const prunedHeartbeats = await this.pruneHeartbeatsIfDue();
+      return { staleWorkers, recoveredJobs, prunedHeartbeats };
+    });
 
+    if (!locked.acquired || !locked.result) {
+      return { staleWorkers: 0, recoveredJobs: 0, prunedHeartbeats: 0 };
+    }
+
+    const { staleWorkers, recoveredJobs, prunedHeartbeats } = locked.result;
     if (staleWorkers > 0 || recoveredJobs > 0 || prunedHeartbeats > 0) {
       this.logger.log(
         JSON.stringify({
@@ -48,7 +60,7 @@ export class StaleRecoveryService {
       );
     }
 
-    return { staleWorkers, recoveredJobs, prunedHeartbeats };
+    return locked.result;
   }
 
   private async markStaleWorkers(): Promise<number> {

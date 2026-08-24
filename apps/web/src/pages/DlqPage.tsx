@@ -50,14 +50,14 @@ export function DlqPage() {
           : null;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <Header
         title="Dead letter queue"
         subtitle="Jobs that exhausted retries. Retry to re-queue, or discard/resolve without running again."
       />
 
       {!orgId ? (
-        <p className="text-sm text-slate-500">Join or create an organization to inspect the DLQ.</p>
+        <p className="text-sm text-steel">Join or create an organization to inspect the DLQ.</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {(
@@ -70,11 +70,11 @@ export function DlqPage() {
             <button
               key={value}
               type="button"
-              className={`rounded-lg px-3 py-1.5 text-sm ${
+              className={
                 resolvedFilter === value
-                  ? "bg-cyan-500 text-slate-950"
-                  : "border border-slate-700 text-slate-300 hover:border-slate-500"
-              }`}
+                  ? "btn-primary !py-1.5"
+                  : "btn-ghost !py-1.5"
+              }
               onClick={() => setResolvedFilter(value)}
             >
               {label}
@@ -83,7 +83,7 @@ export function DlqPage() {
         </div>
       )}
 
-      {actionError ? <p className="text-sm text-rose-300">{actionError}</p> : null}
+      {actionError ? <p className="text-sm text-signal-danger">{actionError}</p> : null}
 
       <ResourceList
         loading={dlq.isLoading}
@@ -119,52 +119,37 @@ function DlqRow(props: {
   const open = !row.resolvedAt;
 
   return (
-    <div className="rounded-xl border border-slate-800 px-4 py-3">
+    <div className="panel px-4 py-3.5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <Link to={`/jobs/${row.jobId}`} className="font-medium text-cyan-300 hover:underline">
+            <Link to={`/jobs/${row.jobId}`} className="font-semibold text-ink hover:text-pine">
               {row.job.name}
             </Link>
             <StatusPill status={row.job.status} />
             {row.resolution ? <StatusPill status={row.resolution} /> : null}
           </div>
-          <p className="font-mono text-xs text-slate-500">
+          <p className="font-mono text-xs text-steel">
             {row.job.projectName} / {row.job.queueName} · {row.job.taskType} · attempts {row.attempts}
           </p>
-          <p className="text-sm text-slate-300">{row.reason}</p>
+          <p className="text-sm text-ink/80">{row.reason}</p>
           {row.finalError ? (
-            <p className="truncate font-mono text-xs text-rose-300/90">{row.finalError}</p>
+            <p className="truncate font-mono text-xs text-signal-danger">{row.finalError}</p>
           ) : null}
-          <p className="font-mono text-[11px] text-slate-600">
+          <p className="font-mono text-[11px] text-steel">
             moved {new Date(row.movedAt).toLocaleString()}
             {row.resolvedAt ? ` · resolved ${new Date(row.resolvedAt).toLocaleString()}` : ""}
           </p>
         </div>
         {open ? (
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              className="rounded-lg bg-cyan-500 px-3 py-1.5 text-sm font-medium text-slate-950 disabled:opacity-50"
-              onClick={onRetry}
-            >
+            <button type="button" disabled={busy} className="btn-primary !py-1.5" onClick={onRetry}>
               Retry
             </button>
-            <button
-              type="button"
-              disabled={busy}
-              className="rounded-lg border border-slate-600 px-3 py-1.5 text-sm text-slate-200 disabled:opacity-50"
-              onClick={onResolve}
-            >
+            <button type="button" disabled={busy} className="btn-ghost !py-1.5" onClick={onResolve}>
               Resolve
             </button>
-            <button
-              type="button"
-              disabled={busy}
-              className="rounded-lg border border-rose-800/60 px-3 py-1.5 text-sm text-rose-300 disabled:opacity-50"
-              onClick={onDiscard}
-            >
+            <button type="button" disabled={busy} className="btn-danger !py-1.5" onClick={onDiscard}>
               Discard
             </button>
           </div>
@@ -173,3 +158,5 @@ function DlqRow(props: {
     </div>
   );
 }
+
+export default DlqPage;

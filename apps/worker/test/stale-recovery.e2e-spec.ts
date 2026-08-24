@@ -45,6 +45,12 @@ describe("Stale worker recovery (e2e)", () => {
       new RetryService(),
       realtime,
       metrics,
+      {
+        withLock: async <T>(_key: string, _ttl: number, fn: () => Promise<T>) => ({
+          acquired: true,
+          result: await fn(),
+        }),
+      } as unknown as import("../src/distributed-lock.service").DistributedLockService,
     );
 
     const org = await prisma.organization.create({

@@ -3,6 +3,8 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
+import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
+import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
 import { SchedulerService } from "./scheduler.service";
 import { ListSchedulesQueryDto, PreviewCronDto, UpdateScheduleDto } from "./dto/schedule.dto";
 
@@ -27,6 +29,8 @@ export class SchedulerController {
   }
 
   @Post("preview")
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "schedules.preview", limit: 60 })
   @ApiOperation({ summary: "Preview next cron fire times (auth required)" })
   preview(@CurrentUser() _user: AuthenticatedUser, @Body() dto: PreviewCronDto) {
     return { success: true, data: this.schedules.previewCron(dto) };
@@ -39,18 +43,24 @@ export class SchedulerController {
   }
 
   @Post(":id/pause")
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "schedules.mutate", limit: 40 })
   @ApiOperation({ summary: "Pause a schedule (MEMBER+)" })
   async pause(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
     return { success: true, data: await this.schedules.pause(user.id, id) };
   }
 
   @Post(":id/resume")
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "schedules.mutate", limit: 40 })
   @ApiOperation({ summary: "Resume a schedule (MEMBER+)" })
   async resume(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
     return { success: true, data: await this.schedules.resume(user.id, id) };
   }
 
   @Patch(":id")
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "schedules.mutate", limit: 40 })
   @ApiOperation({ summary: "Update CRON expression/timezone/active (ADMIN+)" })
   async update(
     @CurrentUser() user: AuthenticatedUser,

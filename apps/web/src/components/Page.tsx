@@ -1,11 +1,16 @@
 import type { ReactNode } from "react";
 import { ApiRequestError } from "../services/api";
 
-export function Header(props: { title: string; subtitle: string }) {
+export function Header(props: { title: string; subtitle?: string; actions?: ReactNode }) {
   return (
-    <div>
-      <h1 className="text-2xl font-semibold text-white">{props.title}</h1>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{props.subtitle}</p>
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-ink">{props.title}</h1>
+        {props.subtitle ? (
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-steel">{props.subtitle}</p>
+        ) : null}
+      </div>
+      {props.actions ? <div className="flex flex-wrap items-center gap-2">{props.actions}</div> : null}
     </div>
   );
 }
@@ -18,14 +23,18 @@ export function ResourceList(props: {
   children: ReactNode;
 }) {
   if (props.loading) {
-    return <div className="rounded-xl border border-slate-800 p-6 text-sm text-slate-400">Loading…</div>;
+    return <div className="panel px-5 py-8 text-sm text-steel">Loading…</div>;
   }
   if (props.error) {
     const message = props.error instanceof ApiRequestError ? props.error.message : "Request failed";
-    return <div className="rounded-xl border border-rose-900 bg-rose-950/40 p-6 text-sm text-rose-300">{message}</div>;
+    return (
+      <div className="rounded-xl border border-signal-danger/20 bg-signal-danger/5 px-5 py-6 text-sm text-signal-danger">
+        {message}
+      </div>
+    );
   }
   if (props.empty) {
-    return <div className="rounded-xl border border-slate-800 p-6 text-sm text-slate-500">{props.emptyText}</div>;
+    return <div className="panel px-5 py-8 text-sm text-steel">{props.emptyText}</div>;
   }
   return <>{props.children}</>;
 }
@@ -38,7 +47,7 @@ export function StatusPill({ status }: { status: string }) {
     status === "QUEUED" ||
     status === "RESOLVED" ||
     status === "RETRIED"
-      ? "border-emerald-800 text-emerald-300"
+      ? "bg-signal-ok/10 text-signal-ok ring-signal-ok/15"
       : status === "PAUSED" ||
           status === "SCHEDULED" ||
           status === "RETRYING" ||
@@ -46,7 +55,7 @@ export function StatusPill({ status }: { status: string }) {
           status === "CLAIMED" ||
           status === "DRAINING" ||
           status === "STARTING"
-        ? "border-amber-800 text-amber-300"
+        ? "bg-signal-warn/10 text-signal-warn ring-signal-warn/15"
         : status === "FAILED" ||
             status === "DLQ" ||
             status === "DISABLED" ||
@@ -54,9 +63,11 @@ export function StatusPill({ status }: { status: string }) {
             status === "DISCARDED" ||
             status === "OFFLINE" ||
             status === "TIMEOUT"
-          ? "border-rose-800 text-rose-300"
-          : "border-slate-700 text-slate-400";
+          ? "bg-signal-danger/10 text-signal-danger ring-signal-danger/15"
+          : "bg-canvas text-steel ring-line";
   return (
-    <span className={`rounded-full border px-2 py-0.5 font-mono text-[11px] uppercase ${tone}`}>{status}</span>
+    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ring-1 ring-inset ${tone}`}>
+      {status}
+    </span>
   );
 }

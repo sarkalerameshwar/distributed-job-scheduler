@@ -37,17 +37,17 @@ export function WorkersPage() {
 function WorkerRowCard(props: { row: WorkerRow }) {
   const { row } = props;
   return (
-    <div className="rounded-xl border border-slate-800 px-4 py-3">
+    <div className="border border-line px-4 py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-sm text-cyan-300">{row.workerId}</span>
+            <span className="font-mono text-sm text-pine">{row.workerId}</span>
             <StatusPill status={row.status} />
           </div>
-          <p className="font-mono text-xs text-slate-500">
+          <p className="font-mono text-xs text-steel">
             {row.hostname} · pid {row.processId} · v{row.version} · concurrency {row.concurrency}
           </p>
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-ink/80">
             in-flight {row.currentJobCount}
             {row.lastHeartbeatAt
               ? ` · last beat ${new Date(row.lastHeartbeatAt).toLocaleString()}`

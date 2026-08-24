@@ -54,9 +54,11 @@ describe("Realtime WebSocket (e2e)", () => {
       auth: { token },
     });
 
+    // Wait for server-side JWT auth (`realtime.ready`), not just transport connect —
+    // otherwise subscribe.org can race and see client.data.user as unset.
     await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("socket connect timeout")), 8_000);
-      socket.on("connect", () => {
+      const timer = setTimeout(() => reject(new Error("realtime.ready timeout")), 8_000);
+      socket.on("realtime.ready", () => {
         clearTimeout(timer);
         resolve();
       });
@@ -64,16 +66,20 @@ describe("Realtime WebSocket (e2e)", () => {
         clearTimeout(timer);
         reject(err);
       });
-    });
-
-    const subscribed = await new Promise<{ ok: boolean }>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("subscribe timeout")), 5_000);
-      socket.emit("subscribe.org", { organizationId }, (ack: { ok: boolean }) => {
+      socket.on("realtime.error", (err) => {
         clearTimeout(timer);
-        resolve(ack);
+        reject(new Error(JSON.stringify(err)));
       });
     });
-    expect(subscribed.ok).toBe(true);
+
+    const subscribed = await new Promise<{ ok: boolean; error?: string }>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("subscribe timeout")), 5_000);
+      socket.emit("subscribe.org", { organizationId }, (ack: { ok: boolean; error?: string }) => {
+        clearTimeout(timer);
+        resolve(ack ?? { ok: false, error: "NO_ACK" });
+      });
+    });
+    expect(subscribed).toEqual(expect.objectContaining({ ok: true, organizationId }));
 
     const received = new Promise<unknown>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error("event timeout")), 5_000);

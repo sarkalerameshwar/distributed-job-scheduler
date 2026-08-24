@@ -14,7 +14,7 @@ Each worker:
 
 ## Recovery loop
 
-Any live worker runs `StaleRecoveryService` on `WORKER_RECOVERY_INTERVAL_MS` (defaults to the heartbeat timeout):
+Any live worker runs `StaleRecoveryService` on `WORKER_RECOVERY_INTERVAL_MS` (defaults to the heartbeat timeout). A Redis lock (`djs:lock:stale-recovery`) elects one recoverer per interval; per-job recovery still uses conditional `UPDATE` if the lock is skipped or expires.
 
 1. **Mark stale workers** — `STARTING` / `ONLINE` / `DRAINING` with `lastHeartbeatAt` older than the timeout → `FAILED`.
 2. **Recover orphaned jobs** — `CLAIMED` / `RUNNING` jobs whose `lockedBy` worker is missing, `OFFLINE`/`FAILED`, or past the heartbeat cutoff:

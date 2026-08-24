@@ -15,6 +15,9 @@ import { StaleRecoveryService } from "./stale-recovery.service";
 import { RealtimePublisher } from "./realtime.publisher";
 import { WorkerMetricsService } from "./worker-metrics.service";
 import { WorkerHealthController } from "./health.controller";
+import { DistributedLockService } from "./distributed-lock.service";
+import { DispatchWakePublisher } from "./dispatch-wake.publisher";
+import { DispatchWakeSubscriber } from "./dispatch-wake.subscriber";
 
 @Module({
   imports: [EnvModule],
@@ -22,6 +25,9 @@ import { WorkerHealthController } from "./health.controller";
   providers: [
     PrismaService,
     RedisClientService,
+    DistributedLockService,
+    DispatchWakePublisher,
+    DispatchWakeSubscriber,
     WorkerContext,
     WorkerMetricsService,
     JobExecutor,

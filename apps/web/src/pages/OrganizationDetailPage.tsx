@@ -37,10 +37,10 @@ export function OrganizationDetailPage() {
   });
 
   if (org.isLoading) {
-    return <div className="text-sm text-slate-400">Loading organization…</div>;
+    return <div className="text-sm text-steel">Loading organization…</div>;
   }
   if (!org.data) {
-    return <div className="text-sm text-rose-300">Organization not found.</div>;
+    return <div className="text-sm text-signal-danger">Organization not found.</div>;
   }
 
   return (
@@ -51,11 +51,11 @@ export function OrganizationDetailPage() {
       />
 
       <section className="space-y-4">
-        <h2 className="text-sm font-medium text-slate-200">Retry policies</h2>
-        <p className="text-sm text-slate-500">
+        <h2 className="text-sm font-medium text-ink">Retry policies</h2>
+        <p className="text-sm text-steel">
           FIXED / LINEAR / EXPONENTIAL backoff. Job failures schedule{" "}
-          <span className="font-mono text-slate-400">RETRYING</span> with{" "}
-          <span className="font-mono text-slate-400">nextRetryAt</span>.
+          <span className="font-mono text-steel">RETRYING</span> with{" "}
+          <span className="font-mono text-steel">nextRetryAt</span>.
         </p>
         <ResourceList
           loading={policies.isLoading}
@@ -72,14 +72,14 @@ export function OrganizationDetailPage() {
                   setSelectedPolicyId(policy.id);
                   runPreview.mutate(policy);
                 }}
-                className={`rounded-xl border p-4 text-left transition ${
+                className={`border p-4 text-left transition ${
                   selected?.id === policy.id
-                    ? "border-cyan-700 bg-cyan-950/30"
-                    : "border-slate-800 bg-slate-900/50 hover:border-slate-600"
+                    ? "border-pine bg-pine-mist"
+                    : "border-line bg-surface hover:border-pine/50 hover:shadow-card"
                 }`}
               >
-                <p className="font-medium text-white">{policy.name}</p>
-                <p className="mt-1 font-mono text-xs text-slate-500">
+                <p className="font-medium text-ink">{policy.name}</p>
+                <p className="mt-1 font-mono text-xs text-steel">
                   {policy.strategy} · {policy.maxAttempts} attempts · {policy.initialDelayMs}ms →{" "}
                   {policy.maxDelayMs}ms
                   {policy.strategy === "EXPONENTIAL" ? ` · ×${policy.multiplier}` : ""}
@@ -90,22 +90,22 @@ export function OrganizationDetailPage() {
         </ResourceList>
 
         {runPreview.error instanceof ApiRequestError ? (
-          <p className="text-sm text-rose-300">{runPreview.error.message}</p>
+          <p className="text-sm text-signal-danger">{runPreview.error.message}</p>
         ) : null}
 
         {preview ? (
-          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-5">
+          <div className="panel/60 p-5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h3 className="text-sm font-medium text-slate-200">
+              <h3 className="text-sm font-medium text-ink">
                 Backoff schedule · {preview.strategy}
               </h3>
-              <p className="font-mono text-xs text-slate-500">
+              <p className="font-mono text-xs text-steel">
                 total wait {preview.totalBackoffMs}ms across {preview.schedule.length} delays
               </p>
             </div>
             <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-left font-mono text-xs text-slate-300">
-                <thead className="text-slate-500">
+              <table className="w-full text-left font-mono text-xs text-ink/80">
+                <thead className="text-steel">
                   <tr>
                     <th className="py-1 pr-4">After attempt</th>
                     <th className="py-1 pr-4">Next attempt</th>
@@ -114,7 +114,7 @@ export function OrganizationDetailPage() {
                 </thead>
                 <tbody>
                   {preview.schedule.map((row) => (
-                    <tr key={row.afterAttempt} className="border-t border-slate-800">
+                    <tr key={row.afterAttempt} className="border-t border-line">
                       <td className="py-1.5 pr-4">#{row.afterAttempt}</td>
                       <td className="py-1.5 pr-4">#{row.nextAttempt}</td>
                       <td className="py-1.5">{row.delayMs} ms</td>
@@ -127,7 +127,7 @@ export function OrganizationDetailPage() {
         ) : selected ? (
           <button
             type="button"
-            className="text-sm text-cyan-400 hover:underline"
+            className="text-sm text-pine hover:underline"
             onClick={() => runPreview.mutate(selected)}
           >
             Preview backoff for {selected.name}
@@ -136,7 +136,7 @@ export function OrganizationDetailPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-sm font-medium text-slate-200">Projects</h2>
+        <h2 className="text-sm font-medium text-ink">Projects</h2>
         <ResourceList
           loading={projects.isLoading}
           error={projects.error}
@@ -148,13 +148,13 @@ export function OrganizationDetailPage() {
               <Link
                 key={project.id}
                 to={`/projects/${project.id}`}
-                className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 hover:border-cyan-800"
+                className="panel p-5 hover:border-pine/50 hover:shadow-card"
               >
                 <div className="flex items-center justify-between">
-                  <p className="font-medium text-white">{project.name}</p>
+                  <p className="font-medium text-ink">{project.name}</p>
                   <StatusPill status={project.status} />
                 </div>
-                <p className="mt-1 font-mono text-xs text-slate-500">
+                <p className="mt-1 font-mono text-xs text-steel">
                   {project.slug} · {project.queueCount ?? 0} queues
                 </p>
               </Link>

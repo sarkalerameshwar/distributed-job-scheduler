@@ -2,6 +2,7 @@ import { FormEvent, useState, type ReactNode } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../stores/auth";
 import { ApiRequestError } from "../services/api";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 export function LoginPage() {
   const { user, login } = useAuth();
@@ -31,26 +32,22 @@ export function LoginPage() {
   }
 
   return (
-    <AuthCard title="Sign in" subtitle="Use your scheduler account. Seeded admin is pre-filled for local development.">
+    <AuthShell title="Sign in" subtitle="Access your organization queues and workers.">
       <form className="space-y-4" onSubmit={onSubmit}>
         <Field label="Email" type="email" value={email} onChange={setEmail} />
         <Field label="Password" type="password" value={password} onChange={setPassword} />
-        {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-medium text-slate-950 hover:bg-cyan-400 disabled:opacity-60"
-        >
+        {error ? <p className="text-sm text-signal-danger">{error}</p> : null}
+        <button type="submit" disabled={pending} className="btn-primary w-full py-2.5">
           {pending ? "Signing in…" : "Sign in"}
         </button>
       </form>
-      <p className="mt-6 text-center text-sm text-slate-400">
+      <p className="mt-6 text-center text-sm text-steel">
         No account?{" "}
-        <Link className="text-cyan-400 hover:text-cyan-300" to="/register">
-          Register
+        <Link className="link" to="/register">
+          Create one
         </Link>
       </p>
-    </AuthCard>
+    </AuthShell>
   );
 }
 
@@ -82,39 +79,49 @@ export function RegisterPage() {
   }
 
   return (
-    <AuthCard
+    <AuthShell
       title="Create account"
-      subtitle="Password must be at least 10 characters and include upper, lower, and a number."
+      subtitle="Passwords need 10+ characters with upper, lower, and a number."
     >
       <form className="space-y-4" onSubmit={onSubmit}>
         <Field label="Name" value={name} onChange={setName} />
         <Field label="Email" type="email" value={email} onChange={setEmail} />
         <Field label="Password" type="password" value={password} onChange={setPassword} />
-        {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-medium text-slate-950 hover:bg-cyan-400 disabled:opacity-60"
-        >
+        {error ? <p className="text-sm text-signal-danger">{error}</p> : null}
+        <button type="submit" disabled={pending} className="btn-primary w-full py-2.5">
           {pending ? "Creating…" : "Create account"}
         </button>
       </form>
-      <p className="mt-6 text-center text-sm text-slate-400">
+      <p className="mt-6 text-center text-sm text-steel">
         Already registered?{" "}
-        <Link className="text-cyan-400 hover:text-cyan-300" to="/login">
+        <Link className="link" to="/login">
           Sign in
         </Link>
       </p>
-    </AuthCard>
+    </AuthShell>
   );
 }
 
-function AuthCard(props: { title: string; subtitle: string; children: ReactNode }) {
+function AuthShell(props: { title: string; subtitle: string; children: ReactNode }) {
   return (
-    <div className="mx-auto max-w-md">
-      <h1 className="text-2xl font-semibold text-white">{props.title}</h1>
-      <p className="mt-2 text-sm leading-6 text-slate-400">{props.subtitle}</p>
-      <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900/50 p-6">{props.children}</div>
+    <div className="relative mx-auto flex min-h-[70vh] max-w-md flex-col justify-center animate-rise py-8">
+      <div className="absolute right-0 top-0">
+        <ThemeToggle />
+      </div>
+      <div className="mb-8 flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink text-xs font-extrabold text-canvas">
+          DJS
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-ink">Job Scheduler</p>
+          <p className="text-xs text-steel">Distributed operations console</p>
+        </div>
+      </div>
+      <div className="panel p-6 sm:p-8">
+        <h1 className="text-xl font-bold tracking-tight text-ink">{props.title}</h1>
+        <p className="mt-1.5 text-sm text-steel">{props.subtitle}</p>
+        <div className="mt-6">{props.children}</div>
+      </div>
     </div>
   );
 }
@@ -126,10 +133,10 @@ function Field(props: {
   type?: string;
 }) {
   return (
-    <label className="block text-sm text-slate-300">
+    <label className="block text-sm font-semibold text-ink">
       {props.label}
       <input
-        className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-cyan-500"
+        className="field mt-1.5 font-normal"
         type={props.type ?? "text"}
         value={props.value}
         onChange={(event) => props.onChange(event.target.value)}

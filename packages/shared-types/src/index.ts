@@ -92,6 +92,17 @@ export type DlqResolution = (typeof DLQ_RESOLUTIONS)[number];
 /** Redis pub/sub channel: worker + API → Socket.IO rooms */
 export const REALTIME_REDIS_CHANNEL = "djs:realtime";
 
+/** Redis pub/sub: API/worker → workers wake to claim (event-driven dispatch) */
+export const DISPATCH_WAKE_CHANNEL = "djs:dispatch";
+
+export type DispatchWakeEvent = {
+  at: string;
+  reason: "job.queued" | "job.batch" | "job.retry" | "schedule.resume" | "promote" | "manual";
+  queueId?: string;
+  jobId?: string;
+  count?: number;
+};
+
 export const REALTIME_EVENT_TYPES = [
   "job.updated",
   "queue.updated",

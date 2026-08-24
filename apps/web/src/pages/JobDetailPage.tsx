@@ -58,10 +58,10 @@ export function JobDetailPage() {
   const timeline = useMemo(() => executions.data?.items ?? [], [executions.data]);
 
   if (job.isLoading) {
-    return <div className="text-sm text-slate-400">Loading job…</div>;
+    return <div className="text-sm text-steel">Loading job…</div>;
   }
   if (!job.data) {
-    return <div className="text-sm text-rose-300">Job not found.</div>;
+    return <div className="text-sm text-signal-danger">Job not found.</div>;
   }
 
   const actionError =
@@ -82,21 +82,21 @@ export function JobDetailPage() {
           <StatusPill status={job.data.status} />
           <button
             type="button"
-            className="rounded-lg border border-amber-800 px-3 py-1.5 text-sm text-amber-200"
+            className="border border-signal-warn/40 px-3 py-1.5 text-sm text-signal-warn"
             onClick={() => cancel.mutate()}
           >
             Cancel
           </button>
           <button
             type="button"
-            className="rounded-lg bg-cyan-500 px-3 py-1.5 text-sm font-medium text-slate-950"
+            className="bg-pine px-3 py-1.5 text-sm font-medium text-surface"
             onClick={() => retry.mutate()}
           >
             Retry
           </button>
         </div>
       </div>
-      {actionError ? <p className="text-sm text-rose-300">{actionError}</p> : null}
+      {actionError ? <p className="text-sm text-signal-danger">{actionError}</p> : null}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Meta label="Priority" value={String(job.data.priority)} />
@@ -110,17 +110,17 @@ export function JobDetailPage() {
         />
       </div>
 
-      <section className="rounded-xl border border-slate-800 p-5">
-        <h2 className="text-sm font-medium text-slate-200">Payload</h2>
-        <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-950 p-4 font-mono text-xs text-slate-300">
+      <section className="border border-line p-5">
+        <h2 className="text-sm font-medium text-ink">Payload</h2>
+        <pre className="mt-3 overflow-x-auto bg-surface p-4 font-mono text-xs text-ink/80">
           {JSON.stringify(job.data.payload, null, 2)}
         </pre>
       </section>
 
-      <section className="rounded-xl border border-slate-800 p-5">
+      <section className="border border-line p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-medium text-slate-200">Execution history</h2>
-          <p className="text-xs text-slate-500">
+          <h2 className="text-sm font-medium text-ink">Execution history</h2>
+          <p className="text-xs text-steel">
             Attempt audit trail (independent of current job status)
           </p>
         </div>
@@ -138,50 +138,50 @@ export function JobDetailPage() {
             ))}
           </div>
         ) : (
-          <p className="mt-3 text-sm text-slate-500">
+          <p className="mt-3 text-sm text-steel">
             No executions yet. The worker creates an attempt record when it claims the job.
           </p>
         )}
 
         {selectedExecutionId && executionDetail.data ? (
-          <div className="mt-4 space-y-3 rounded-lg border border-slate-700 bg-slate-950/60 p-4">
-            <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">
+          <div className="mt-4 space-y-3 border border-line bg-surface/60 p-4">
+            <h3 className="text-xs font-medium uppercase tracking-wide text-steel">
               Attempt #{executionDetail.data.attemptNumber} detail
             </h3>
             {executionDetail.data.errorCode ? (
-              <p className="font-mono text-xs text-rose-300">
+              <p className="font-mono text-xs text-signal-danger">
                 {executionDetail.data.errorCode}: {executionDetail.data.errorMessage}
               </p>
             ) : null}
             {executionDetail.data.errorStack ? (
-              <pre className="max-h-40 overflow-auto rounded bg-slate-900 p-3 font-mono text-[11px] text-rose-200/80">
+              <pre className="max-h-40 overflow-auto rounded bg-paper p-3 font-mono text-[11px] text-signal-danger">
                 {executionDetail.data.errorStack}
               </pre>
             ) : null}
             {executionDetail.data.result != null ? (
-              <pre className="max-h-48 overflow-auto rounded bg-slate-900 p-3 font-mono text-[11px] text-emerald-200/90">
+              <pre className="max-h-48 overflow-auto rounded bg-paper p-3 font-mono text-[11px] text-pine-deep">
                 {JSON.stringify(executionDetail.data.result, null, 2)}
               </pre>
             ) : (
-              <p className="text-xs text-slate-500">No result payload on this attempt.</p>
+              <p className="text-xs text-steel">No result payload on this attempt.</p>
             )}
           </div>
         ) : null}
       </section>
 
-      <section className="rounded-xl border border-slate-800 p-5">
+      <section className="border border-line p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-medium text-slate-200">Logs</h2>
+          <h2 className="text-sm font-medium text-ink">Logs</h2>
           {selectedExecutionId ? (
             <button
               type="button"
-              className="text-xs text-cyan-400 hover:underline"
+              className="text-xs text-pine hover:underline"
               onClick={() => setSelectedExecutionId(null)}
             >
               Show all attempts
             </button>
           ) : (
-            <p className="text-xs text-slate-500">Select an execution to filter</p>
+            <p className="text-xs text-steel">Select an execution to filter</p>
           )}
         </div>
         {logs.data?.items.length ? (
@@ -191,7 +191,7 @@ export function JobDetailPage() {
             ))}
           </div>
         ) : (
-          <p className="mt-3 text-sm text-slate-500">No logs.</p>
+          <p className="mt-3 text-sm text-steel">No logs.</p>
         )}
       </section>
     </div>
@@ -208,16 +208,16 @@ function ExecutionRow(props: {
     <button
       type="button"
       onClick={onSelect}
-      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left font-mono text-xs transition ${
-        selected ? "bg-cyan-950/50 ring-1 ring-cyan-700" : "bg-slate-900 hover:bg-slate-800"
+      className={`flex w-full items-center justify-between px-3 py-2 text-left font-mono text-xs transition ${
+        selected ? "bg-pine-mist ring-1 ring-pine" : "bg-paper hover:bg-line/40"
       }`}
     >
-      <span className="text-slate-200">
+      <span className="text-ink">
         #{exec.attemptNumber} · {exec.status}
         {exec.workerIdentity ? ` · ${exec.workerIdentity}` : ""}
         {exec.errorCode ? ` · ${exec.errorCode}` : ""}
       </span>
-      <span className="text-slate-500">
+      <span className="text-steel">
         {exec.durationMs != null ? `${exec.durationMs}ms` : exec.startedAt ?? exec.createdAt}
       </span>
     </button>
@@ -227,13 +227,13 @@ function ExecutionRow(props: {
 function LogRow(props: { log: JobLog }) {
   const levelColor =
     props.log.level === "ERROR"
-      ? "text-rose-300"
+      ? "text-signal-danger"
       : props.log.level === "WARN"
-        ? "text-amber-300"
-        : "text-slate-300";
+        ? "text-signal-warn"
+        : "text-ink/80";
   return (
-    <div className="rounded-lg bg-slate-900 px-3 py-2 font-mono text-xs">
-      <span className="text-slate-500">{props.log.createdAt}</span>{" "}
+    <div className="bg-paper px-3 py-2 font-mono text-xs">
+      <span className="text-steel">{props.log.createdAt}</span>{" "}
       <span className={levelColor}>[{props.log.level}]</span> {props.log.message}
     </div>
   );
@@ -241,9 +241,9 @@ function LogRow(props: { log: JobLog }) {
 
 function Meta(props: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-      <p className="font-mono text-[11px] uppercase tracking-wide text-slate-500">{props.label}</p>
-      <p className="mt-2 break-all text-sm text-white">{props.value}</p>
+    <div className="panel p-4">
+      <p className="font-mono text-[11px] uppercase tracking-wide text-steel">{props.label}</p>
+      <p className="mt-2 break-all text-sm text-ink">{props.value}</p>
     </div>
   );
 }

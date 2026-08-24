@@ -46,6 +46,11 @@ export function useRealtime(): { status: RealtimeStatus } {
     };
 
     socket.on("connect", () => {
+      setStatus("connecting");
+    });
+
+    // Server emits this only after JWT auth sets client.data.user.
+    socket.on("realtime.ready", () => {
       setStatus("connected");
       if (orgId) {
         socket.emit("subscribe.org", { organizationId: orgId }, () => undefined);
@@ -54,6 +59,7 @@ export function useRealtime(): { status: RealtimeStatus } {
 
     socket.on("disconnect", () => setStatus("connecting"));
     socket.on("connect_error", () => setStatus("error"));
+    socket.on("realtime.error", () => setStatus("error"));
 
     socket.on("job.updated", (event: RealtimeEvent) => {
       invalidateOrg();

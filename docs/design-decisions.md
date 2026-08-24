@@ -12,11 +12,11 @@ Major trade-offs made while building the Distributed Job Scheduler. Each section
 
 ## 2. Polling workers + conditional claim (not BullMQ dispatch)
 
-**Choice:** Workers poll MySQL, lock the queue row, and claim with `UPDATE … WHERE status = 'QUEUED'`. Redis Pub/Sub carries **realtime UI events** only.
+**Choice:** Workers poll MySQL, lock the queue row, and claim with `UPDATE … WHERE status = 'QUEUED'`. Redis Pub/Sub carries **realtime UI events** and **dispatch wake hints**.
 
 **Alternatives:** BullMQ / Redis lists as the dispatch fabric (suggested in the original stack notes).
 
-**Why:** Using BullMQ as the work queue would duplicate state already in MySQL and invite split-brain on retries/DLQ. Conditional claim against MySQL keeps one lifecycle. Redis remains valuable for Socket.IO fan-out and health checks without becoming the system of record.
+**Why:** Using BullMQ as the work queue would duplicate state already in MySQL and invite split-brain on retries/DLQ. Conditional claim against MySQL keeps one lifecycle. Redis wake (`djs:dispatch`) only shortens idle latency; poll remains the fallback. Socket.IO fan-out stays on `djs:realtime`. See [rate-limit-dispatch.md](./rate-limit-dispatch.md).
 
 This is an intentional departure from “Redis + BullMQ for dispatch”; see [architecture.md](./architecture.md).
 
@@ -91,6 +91,7 @@ This is an intentional departure from “Redis + BullMQ for dispatch”; see [ar
 | Workflow DAGs / job dependencies | Bonus; not required for core lifecycle |
 | Queue sharding | Deferred; single-queue indexes suffice at demo scale |
 | AI failure summaries | Bonus; out of scope |
+| Rate limiting / distributed locks / event-driven wake | Implemented — [rate-limit-dispatch.md](./rate-limit-dispatch.md) |
 | TLS / secrets manager | Deferred to real production hardening |
 | Auto-delete of job/execution rows | Retention only for logs/heartbeats; history kept |
 

@@ -10,6 +10,7 @@ import { assertTransition, isCancellable, isManuallyRetryable } from "./job-stat
 import { getNextCronRun, isValidCronExpression, isValidIanaTimezone } from "./cron.util";
 import type { CreateBatchJobsDto, CreateJobDto, CreateJobItemDto, ListJobsQueryDto } from "./dto/job.dto";
 import { RealtimePublisher } from "../realtime/realtime.publisher";
+import { DispatchWakePublisher } from "../realtime/dispatch-wake.publisher";
 
 @Injectable()
 export class JobsService {
@@ -18,6 +19,7 @@ export class JobsService {
     private readonly rbac: RbacService,
     private readonly env: EnvService,
     private readonly realtime: RealtimePublisher,
+    private readonly dispatchWake: DispatchWakePublisher,
   ) {}
 
   async create(userId: string, dto: CreateJobDto, idempotencyHeader?: string) {
@@ -94,6 +96,13 @@ export class JobsService {
         status: view.status,
         queueId: view.queueId,
       });
+      if (view.status === "QUEUED") {
+        void this.dispatchWake.wake({
+          reason: "job.queued",
+          queueId: view.queueId,
+          jobId: view.id,
+        });
+      }
       return { job: view, idempotentReplay: false };
     } catch (error) {
       if (idempotencyKey) {
@@ -164,6 +173,13 @@ export class JobsService {
         batchId: result.batchId,
         count: result.jobs.length,
       });
+      if (result.jobs.length > 0) {
+        void this.dispatchWake.wake({
+          reason: "job.batch",
+          queueId: queue.id,
+          count: result.jobs.length,
+        });
+      }
       return result;
     });
   }
@@ -358,6 +374,13 @@ export class JobsService {
       void this.realtime.dlqUpdated(updated.queue.project.organizationId, {
         jobId: updated.id,
         resolution: "RETRIED",
+      });
+    }
+    if (updated.status === "QUEUED") {
+      void this.dispatchWake.wake({
+        reason: "job.retry",
+        queueId: updated.queueId,
+        jobId: updated.id,
       });
     }
     return this.toView(updated);

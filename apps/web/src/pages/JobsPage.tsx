@@ -74,7 +74,7 @@ export function JobsPage() {
 
       <div className="flex flex-wrap gap-3">
         <select
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+          className="field"
           value={selectedQueue}
           onChange={(e) => setQueueId(e.target.value)}
         >
@@ -85,7 +85,7 @@ export function JobsPage() {
           ))}
         </select>
         <select
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+          className="field"
           value={status}
           onChange={(e) => {
             const next = e.target.value;
@@ -107,7 +107,7 @@ export function JobsPage() {
       </div>
 
       <form
-        className="grid max-w-3xl gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-5 sm:grid-cols-2"
+        className="grid max-w-3xl gap-3 border border-line bg-surface p-5 sm:grid-cols-2"
         onSubmit={(event: FormEvent) => {
           event.preventDefault();
           setError(null);
@@ -115,14 +115,14 @@ export function JobsPage() {
         }}
       >
         <input
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm sm:col-span-2"
+          className="panel px-3 py-2 text-sm sm:col-span-2"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Job name"
           required
         />
         <select
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+          className="field"
           value={jobType}
           onChange={(e) => setJobType(e.target.value)}
         >
@@ -133,7 +133,7 @@ export function JobsPage() {
           ))}
         </select>
         <select
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+          className="field"
           value={taskType}
           onChange={(e) => setTaskType(e.target.value as (typeof TASK_TYPES)[number])}
         >
@@ -145,7 +145,7 @@ export function JobsPage() {
         </select>
         {jobType === "DELAYED" ? (
           <input
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className="field"
             value={delayMs}
             onChange={(e) => setDelayMs(e.target.value)}
             placeholder="Delay ms"
@@ -153,17 +153,17 @@ export function JobsPage() {
         ) : null}
         {jobType === "RECURRING" ? (
           <input
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className="field"
             value={cron}
             onChange={(e) => setCron(e.target.value)}
             placeholder="Cron"
           />
         ) : null}
-        <button className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950 sm:col-span-2" type="submit">
+        <button className="btn-primary sm:col-span-2" type="submit">
           Create job
         </button>
       </form>
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+      {error ? <p className="text-sm text-signal-danger">{error}</p> : null}
 
       <ResourceList loading={jobs.isLoading} error={jobs.error} empty={!jobs.data?.items.length} emptyText="No jobs.">
         <div className="space-y-3">
@@ -171,11 +171,11 @@ export function JobsPage() {
             <Link
               key={job.id}
               to={`/jobs/${job.id}`}
-              className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/50 px-5 py-4 hover:border-cyan-800"
+              className="panel flex items-center justify-between px-5 py-4 hover:border-pine/50 hover:shadow-card"
             >
               <div>
-                <p className="font-medium text-white">{job.name}</p>
-                <p className="font-mono text-xs text-slate-500">
+                <p className="font-medium text-ink">{job.name}</p>
+                <p className="font-mono text-xs text-steel">
                   {job.taskType} · {job.type} · p{job.priority} · {job.queueName}
                 </p>
               </div>

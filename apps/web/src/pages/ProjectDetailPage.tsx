@@ -42,7 +42,7 @@ export function ProjectDetailPage() {
   });
 
   if (!project.data && !project.isLoading) {
-    return <div className="text-sm text-rose-300">Project not found.</div>;
+    return <div className="text-sm text-signal-danger">Project not found.</div>;
   }
 
   return (
@@ -60,14 +60,14 @@ export function ProjectDetailPage() {
         }}
       >
         <input
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+          className="field"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Queue name"
           required
         />
         <select
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+          className="field"
           value={retryPolicyId || policies.data?.[0]?.id || ""}
           onChange={(e) => setRetryPolicyId(e.target.value)}
         >
@@ -77,11 +77,11 @@ export function ProjectDetailPage() {
             </option>
           ))}
         </select>
-        <button className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950" type="submit">
+        <button className="btn-primary" type="submit">
           Add queue
         </button>
       </form>
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+      {error ? <p className="text-sm text-signal-danger">{error}</p> : null}
       <ResourceList
         loading={queues.isLoading}
         error={queues.error}
@@ -93,11 +93,11 @@ export function ProjectDetailPage() {
             <Link
               key={queue.id}
               to={`/queues/${queue.id}`}
-              className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/50 px-5 py-4 hover:border-cyan-800"
+              className="panel flex items-center justify-between px-5 py-4 hover:border-pine/50 hover:shadow-card"
             >
               <div>
-                <p className="font-medium text-white">{queue.name}</p>
-                <p className="font-mono text-xs text-slate-500">
+                <p className="font-medium text-ink">{queue.name}</p>
+                <p className="font-mono text-xs text-steel">
                   concurrency {queue.maxConcurrency} · {queue.retryPolicy?.name}
                 </p>
               </div>

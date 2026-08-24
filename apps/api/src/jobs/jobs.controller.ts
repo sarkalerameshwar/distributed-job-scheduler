@@ -13,9 +13,10 @@ import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { PaginationQueryDto } from "../common/pagination";
+import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
+import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
 import { JobsService } from "./jobs.service";
 import { CreateBatchJobsDto, CreateJobDto, ListJobLogsQueryDto, ListJobsQueryDto } from "./dto/job.dto";
-import { JobCreateRateLimitGuard } from "./guards/job-create-rate-limit.guard";
 
 @ApiTags("jobs")
 @ApiBearerAuth()
@@ -25,7 +26,8 @@ export class JobsController {
   constructor(private readonly jobs: JobsService) {}
 
   @Post()
-  @UseGuards(JobCreateRateLimitGuard)
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "jobs.create", limit: 60 })
   @ApiHeader({ name: "Idempotency-Key", required: false })
   @ApiOperation({ summary: "Create a job (MEMBER+). Supports immediate/delayed/scheduled/recurring." })
   async create(
@@ -38,7 +40,8 @@ export class JobsController {
   }
 
   @Post("batch")
-  @UseGuards(JobCreateRateLimitGuard)
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "jobs.batch", limit: 20 })
   @ApiOperation({ summary: "Atomically create a batch of jobs (MEMBER+)" })
   async createBatch(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateBatchJobsDto) {
     return { success: true, data: await this.jobs.createBatch(user.id, dto) };
@@ -64,12 +67,16 @@ export class JobsController {
   }
 
   @Post(":id/cancel")
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "jobs.cancel", limit: 60 })
   @ApiOperation({ summary: "Cancel a queued/scheduled/retrying/claimed/running job" })
   async cancel(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
     return { success: true, data: await this.jobs.cancel(user.id, id) };
   }
 
   @Post(":id/retry")
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "jobs.retry", limit: 30 })
   @ApiOperation({ summary: "Manually re-queue a failed, cancelled, or DLQ job" })
   async retry(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
     return { success: true, data: await this.jobs.retry(user.id, id) };

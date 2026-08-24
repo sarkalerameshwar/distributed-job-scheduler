@@ -20,11 +20,11 @@ export function QueuesPage() {
             <Link
               key={queue.id}
               to={`/queues/${queue.id}`}
-              className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/50 px-5 py-4 hover:border-cyan-800"
+              className="panel flex items-center justify-between px-5 py-4 hover:border-pine/50 hover:shadow-card"
             >
               <div>
-                <p className="font-medium text-white">{queue.name}</p>
-                <p className="font-mono text-xs text-slate-500">
+                <p className="font-medium text-ink">{queue.name}</p>
+                <p className="font-mono text-xs text-steel">
                   {queue.projectName} · concurrency {queue.maxConcurrency}
                 </p>
               </div>

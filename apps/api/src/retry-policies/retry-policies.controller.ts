@@ -3,6 +3,8 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
+import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
+import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
 import { RetryPoliciesService } from "./retry-policies.service";
 import {
   CreateRetryPolicyDto,
@@ -25,6 +27,8 @@ export class RetryPoliciesController {
   }
 
   @Post("preview")
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "retry-policies.preview", limit: 60 })
   @ApiOperation({ summary: "Preview FIXED/LINEAR/EXPONENTIAL backoff schedule (VIEWER+)" })
   async preview(@CurrentUser() user: AuthenticatedUser, @Body() dto: PreviewRetryPolicyDto) {
     return { success: true, data: await this.policies.preview(user.id, dto) };
@@ -37,12 +41,16 @@ export class RetryPoliciesController {
   }
 
   @Post()
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "retry-policies.mutate", limit: 30 })
   @ApiOperation({ summary: "Create a retry policy (ADMIN+)" })
   async create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateRetryPolicyDto) {
     return { success: true, data: await this.policies.create(user.id, dto) };
   }
 
   @Patch(":id")
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "retry-policies.mutate", limit: 30 })
   @ApiOperation({ summary: "Update a retry policy (ADMIN+)" })
   async update(
     @CurrentUser() user: AuthenticatedUser,

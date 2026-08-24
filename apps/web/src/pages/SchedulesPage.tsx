@@ -53,34 +53,34 @@ export function SchedulesPage() {
       />
 
       {!orgId ? (
-        <p className="text-sm text-slate-500">Join or create an organization to manage schedules.</p>
+        <p className="text-sm text-steel">Join or create an organization to manage schedules.</p>
       ) : null}
 
-      <section className="rounded-xl border border-slate-800 p-5">
-        <h2 className="text-sm font-medium text-slate-200">Cron preview</h2>
+      <section className="border border-line p-5">
+        <h2 className="text-sm font-medium text-ink">Cron preview</h2>
         <div className="mt-3 flex flex-wrap gap-3">
           <input
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-200"
+            className="field font-mono"
             value={cronExpression}
             onChange={(e) => setCronExpression(e.target.value)}
             placeholder="*/15 * * * *"
           />
           <input
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-200"
+            className="field font-mono"
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
             placeholder="UTC"
           />
           <button
             type="button"
-            className="rounded-lg bg-cyan-500 px-3 py-2 text-sm font-medium text-slate-950"
+            className="bg-pine px-3 py-2 text-sm font-medium text-surface"
             onClick={() => preview.mutate()}
           >
             Preview next 5
           </button>
         </div>
         {previewRuns.length ? (
-          <ul className="mt-3 space-y-1 font-mono text-xs text-slate-400">
+          <ul className="mt-3 space-y-1 font-mono text-xs text-steel">
             {previewRuns.map((run) => (
               <li key={run}>{run}</li>
             ))}
@@ -88,7 +88,7 @@ export function SchedulesPage() {
         ) : null}
       </section>
 
-      {actionError ? <p className="text-sm text-rose-300">{actionError}</p> : null}
+      {actionError ? <p className="text-sm text-signal-danger">{actionError}</p> : null}
 
       <ResourceList
         loading={schedules.isLoading}
@@ -118,21 +118,21 @@ function ScheduleRow(props: {
 }) {
   const { row, onPause, onResume } = props;
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 border border-line bg-surface px-4 py-3">
       <div>
         <div className="flex items-center gap-2">
-          <Link to={`/jobs/${row.jobId}`} className="font-medium text-white hover:text-cyan-300">
+          <Link to={`/jobs/${row.jobId}`} className="font-medium text-ink hover:text-pine">
             {row.job.name}
           </Link>
           <StatusPill status={row.active ? "ACTIVE" : "PAUSED"} />
-          <span className="font-mono text-[11px] text-slate-500">{row.scheduleType}</span>
+          <span className="font-mono text-[11px] text-steel">{row.scheduleType}</span>
         </div>
-        <p className="mt-1 font-mono text-xs text-slate-500">
+        <p className="mt-1 font-mono text-xs text-steel">
           {row.cronExpression ? `${row.cronExpression} · ${row.timezone}` : row.timezone} · next{" "}
           {row.nextRunAt}
           {row.lastRunAt ? ` · last ${row.lastRunAt}` : ""}
         </p>
-        <p className="mt-0.5 font-mono text-[11px] text-slate-600">
+        <p className="mt-0.5 font-mono text-[11px] text-steel">
           {row.job.projectName} / {row.job.queueName} · job {row.job.status}
         </p>
       </div>
@@ -140,7 +140,7 @@ function ScheduleRow(props: {
         {row.active ? (
           <button
             type="button"
-            className="rounded-lg border border-amber-800 px-3 py-1.5 text-xs text-amber-200"
+            className="border border-signal-warn/40 px-3 py-1.5 text-xs text-signal-warn"
             onClick={onPause}
           >
             Pause
@@ -148,7 +148,7 @@ function ScheduleRow(props: {
         ) : (
           <button
             type="button"
-            className="rounded-lg border border-emerald-800 px-3 py-1.5 text-xs text-emerald-200"
+            className="border border-pine/40 px-3 py-1.5 text-xs text-emerald-200"
             onClick={onResume}
           >
             Resume

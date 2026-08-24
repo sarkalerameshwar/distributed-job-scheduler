@@ -7,6 +7,7 @@ import { paginatedResult, toSkipTake } from "../common/pagination";
 import { rethrowUnique } from "../common/prisma-errors";
 import type { CreateQueueDto, ListQueuesQueryDto, UpdateQueueDto } from "./dto/queue.dto";
 import { RealtimePublisher } from "../realtime/realtime.publisher";
+import { DispatchWakePublisher } from "../realtime/dispatch-wake.publisher";
 
 const STATUSES = ["QUEUED", "SCHEDULED", "CLAIMED", "RUNNING", "COMPLETED", "FAILED", "RETRYING", "CANCELLED", "DLQ"] as const;
 
@@ -16,6 +17,7 @@ export class QueuesService {
     private readonly prisma: PrismaService,
     private readonly rbac: RbacService,
     private readonly realtime: RealtimePublisher,
+    private readonly dispatchWake: DispatchWakePublisher,
   ) {}
 
   async create(userId: string, dto: CreateQueueDto) {
@@ -117,6 +119,7 @@ export class QueuesService {
       queueId: updated.id,
       status: updated.status,
     });
+    void this.dispatchWake.wake({ reason: "manual", queueId: updated.id });
     return this.toView(updated);
   }
 

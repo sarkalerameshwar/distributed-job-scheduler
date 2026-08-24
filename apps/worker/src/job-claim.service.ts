@@ -4,6 +4,8 @@ import { PrismaService } from "./prisma.service";
 import { WorkerContext } from "./worker-context";
 import { RealtimePublisher } from "./realtime.publisher";
 import { WorkerMetricsService } from "./worker-metrics.service";
+import { DistributedLockService, PROMOTE_LOCK_KEY } from "./distributed-lock.service";
+import { DispatchWakePublisher } from "./dispatch-wake.publisher";
 
 export type ClaimedJob = {
   id: string;
@@ -25,6 +27,7 @@ export type ClaimedJob = {
 };
 
 const CANDIDATE_BATCH = 24;
+const PROMOTE_LOCK_TTL_MS = 5_000;
 
 /**
  * Atomic claim: candidate read + per-queue lock + conditional QUEUED→CLAIMED update.
@@ -46,26 +49,39 @@ export class JobClaimService {
     private readonly ctx: WorkerContext,
     private readonly realtime: RealtimePublisher,
     private readonly metrics: WorkerMetricsService,
+    private readonly locks: DistributedLockService,
+    private readonly dispatchWake: DispatchWakePublisher,
   ) {}
 
   /** Move due scheduled/retrying jobs into QUEUED so they become claimable. */
   async promoteDueJobs(): Promise<number> {
-    const now = new Date();
-    const scheduled = await this.prisma.job.updateMany({
-      where: {
-        status: "SCHEDULED",
-        scheduledAt: { lte: now },
-      },
-      data: { status: "QUEUED" },
+    const locked = await this.locks.withLock(PROMOTE_LOCK_KEY, PROMOTE_LOCK_TTL_MS, async () => {
+      const now = new Date();
+      const scheduled = await this.prisma.job.updateMany({
+        where: {
+          status: "SCHEDULED",
+          scheduledAt: { lte: now },
+        },
+        data: { status: "QUEUED" },
+      });
+      const retrying = await this.prisma.job.updateMany({
+        where: {
+          status: "RETRYING",
+          nextRetryAt: { lte: now },
+        },
+        data: { status: "QUEUED", nextRetryAt: null },
+      });
+      return scheduled.count + retrying.count;
     });
-    const retrying = await this.prisma.job.updateMany({
-      where: {
-        status: "RETRYING",
-        nextRetryAt: { lte: now },
-      },
-      data: { status: "QUEUED", nextRetryAt: null },
-    });
-    return scheduled.count + retrying.count;
+
+    if (!locked.acquired) {
+      return 0;
+    }
+    const count = locked.result ?? 0;
+    if (count > 0) {
+      void this.dispatchWake.wake({ reason: "promote", count });
+    }
+    return count;
   }
 
   async claimNext(options?: { queueId?: string }): Promise<ClaimedJob | null> {

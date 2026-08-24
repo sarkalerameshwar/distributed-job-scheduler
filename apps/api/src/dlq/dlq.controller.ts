@@ -3,6 +3,8 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
+import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
+import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
 import { DlqService } from "./dlq.service";
 import { ListDlqQueryDto, ResolveDlqDto } from "./dto/dlq.dto";
 
@@ -33,12 +35,16 @@ export class DlqController {
   }
 
   @Post(":id/retry")
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "dlq.retry", limit: 30 })
   @ApiOperation({ summary: "Re-queue the DLQ job (MEMBER+); marks resolution RETRIED" })
   async retry(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
     return { success: true, data: await this.dlq.retry(user.id, id) };
   }
 
   @Post(":id/discard")
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "dlq.resolve", limit: 60 })
   @ApiOperation({ summary: "Discard a DLQ entry without re-running (MEMBER+)" })
   async discard(
     @CurrentUser() user: AuthenticatedUser,
@@ -49,6 +55,8 @@ export class DlqController {
   }
 
   @Post(":id/resolve")
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: "dlq.resolve", limit: 60 })
   @ApiOperation({ summary: "Mark a DLQ entry resolved without re-running (MEMBER+)" })
   async resolve(
     @CurrentUser() user: AuthenticatedUser,

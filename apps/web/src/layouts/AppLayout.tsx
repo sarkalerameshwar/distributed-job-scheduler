@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../stores/auth";
 import { useRealtime } from "../hooks/useRealtime";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 const nav = [
   { to: "/", label: "Dashboard", end: true },
@@ -18,23 +19,69 @@ export function AppLayout() {
   const { status: live } = useRealtime();
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-          <Link to="/" className="flex shrink-0 items-baseline gap-3">
-            <span className="font-mono text-sm tracking-widest text-cyan-400">DJS</span>
-            <span className="hidden text-sm font-medium text-slate-200 sm:inline">Job Scheduler</span>
-          </Link>
+    <div className="min-h-screen overflow-x-hidden bg-canvas">
+      <header className="sticky top-0 z-30 border-b border-line bg-surface/95 backdrop-blur">
+        <div className="mx-auto max-w-screen-2xl px-5 sm:px-8">
+          <div className="flex h-12 items-center justify-between gap-3">
+            <Link to="/" className="flex shrink-0 items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-[11px] font-extrabold tracking-tight text-canvas">
+                DJS
+              </span>
+              <span className="text-sm font-semibold text-ink">Job Scheduler</span>
+            </Link>
+
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              <ThemeToggle />
+              {user ? (
+                <>
+                  <div
+                    className={`hidden items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-semibold sm:inline-flex ${
+                      live === "connected"
+                        ? "bg-signal-ok/10 text-signal-ok"
+                        : live === "error"
+                          ? "bg-signal-danger/10 text-signal-danger"
+                          : "bg-canvas text-steel"
+                    }`}
+                    title="Realtime connection"
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        live === "connected"
+                          ? "animate-pulse-dot bg-signal-ok"
+                          : live === "error"
+                            ? "bg-signal-danger"
+                            : "bg-steel"
+                      }`}
+                    />
+                    {live === "connected" ? "Live" : live === "error" ? "Offline" : "Connecting"}
+                  </div>
+                  <div className="hidden border-l border-line pl-3 text-right md:block">
+                    <p className="text-[13px] font-semibold leading-tight text-ink">{user.name}</p>
+                    <p className="text-[11px] text-steel">
+                      {memberships[0] ? `${memberships[0].slug} · ${memberships[0].role}` : user.email}
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => void logout()} className="btn-ghost !py-1.5 !text-xs">
+                    Sign out
+                  </button>
+                </>
+              ) : null}
+            </div>
+          </div>
+
           {user ? (
-            <nav className="flex max-w-full flex-1 gap-1 overflow-x-auto text-sm text-slate-400">
+            <nav
+              className="flex flex-wrap gap-1 overflow-x-hidden border-t border-line py-2"
+              aria-label="Primary"
+            >
               {nav.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   end={item.end}
                   className={({ isActive }) =>
-                    `whitespace-nowrap rounded-lg px-2.5 py-1.5 transition-colors ${
-                      isActive ? "bg-slate-900 text-cyan-300" : "hover:text-cyan-300"
+                    `rounded-md px-2.5 py-1.5 text-[13px] font-medium transition ${
+                      isActive ? "bg-canvas text-ink" : "text-steel hover:bg-canvas hover:text-ink"
                     }`
                   }
                 >
@@ -42,55 +89,11 @@ export function AppLayout() {
                 </NavLink>
               ))}
             </nav>
-          ) : (
-            <div className="flex-1" />
-          )}
-          <div className="flex items-center gap-4">
-            {user ? (
-              <>
-                <div className="hidden text-right sm:block">
-                  <p className="text-sm text-slate-200">{user.name}</p>
-                  <p className="font-mono text-xs text-slate-500">
-                    {memberships[0] ? `${memberships[0].slug} · ${memberships[0].role}` : user.email}
-                  </p>
-                </div>
-                <span
-                  className={`hidden items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[11px] sm:inline-flex ${
-                    live === "connected"
-                      ? "border-emerald-900/70 text-emerald-300"
-                      : live === "error"
-                        ? "border-rose-900/70 text-rose-300"
-                        : "border-slate-700 text-slate-500"
-                  }`}
-                  title="Socket.IO live updates"
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      live === "connected"
-                        ? "bg-emerald-400"
-                        : live === "error"
-                          ? "bg-rose-400"
-                          : "bg-slate-500"
-                    }`}
-                  />
-                  {live === "connected" ? "live" : live === "error" ? "offline" : "…"}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => void logout()}
-                  className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-slate-500"
-                >
-                  Sign out
-                </button>
-              </>
-            ) : null}
-            <span className="rounded-full border border-cyan-900/80 bg-cyan-950/40 px-3 py-1 font-mono text-xs text-cyan-300">
-              Phase 18
-            </span>
-          </div>
+          ) : null}
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-6 py-10">
+
+      <main className="mx-auto max-w-screen-2xl animate-rise px-5 py-8 sm:px-8">
         <Outlet />
       </main>
     </div>

@@ -130,11 +130,11 @@ Pagination: `?page=1&limit=20` (max 100). Never unbounded.
 | Method | Path | Min role | Notes |
 |--------|------|----------|--------|
 | POST | `/jobs` | MEMBER | Immediate / delayed / scheduled / recurring. Optional `Idempotency-Key` header. Rate limited. |
-| POST | `/jobs/batch` | MEMBER | Atomic batch insert (max 100). |
+| POST | `/jobs/batch` | MEMBER | Atomic batch insert (max 100). Rate limited. |
 | GET | `/jobs` | VIEWER | Filters: `queueId`, `projectId`, `organizationId`, `status`, `taskType`, `priority`, `createdFrom`, `createdTo`, sort. |
 | GET | `/jobs/:id` | VIEWER | Includes schedule when present. |
-| POST | `/jobs/:id/cancel` | MEMBER | From QUEUED / SCHEDULED / RETRYING / CLAIMED. |
-| POST | `/jobs/:id/retry` | MEMBER | From FAILED / DLQ / CANCELLED → QUEUED (history preserved). |
+| POST | `/jobs/:id/cancel` | MEMBER | From QUEUED / SCHEDULED / RETRYING / CLAIMED / RUNNING. Rate limited. |
+| POST | `/jobs/:id/retry` | MEMBER | From FAILED / DLQ / CANCELLED → QUEUED (history preserved). Rate limited. |
 | GET | `/jobs/:id/executions` | VIEWER | Attempt history (`JobExecution`). Status/duration/error summary. |
 | GET | `/jobs/:id/executions/:executionId` | VIEWER | Full attempt: result JSON, error stack, linked logs. |
 | GET | `/jobs/:id/logs` | VIEWER | Optional `?executionId=&level=`. |

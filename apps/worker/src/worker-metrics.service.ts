@@ -12,6 +12,7 @@ export class WorkerMetricsService {
   private recoveries = 0;
   private heartbeats = 0;
   private realtimePublishes = 0;
+  private dispatchWakes = 0;
 
   incClaim(): void {
     this.claims += 1;
@@ -39,6 +40,10 @@ export class WorkerMetricsService {
 
   incRealtimePublish(): void {
     this.realtimePublishes += 1;
+  }
+
+  incDispatchWake(): void {
+    this.dispatchWakes += 1;
   }
 
   render(activeJobs: number, draining: boolean, workerId: string): string {
@@ -77,6 +82,9 @@ export class WorkerMetricsService {
       "# HELP djs_worker_realtime_publishes_total Realtime events published",
       "# TYPE djs_worker_realtime_publishes_total counter",
       `djs_worker_realtime_publishes_total ${this.realtimePublishes}`,
+      "# HELP djs_worker_dispatch_wakes_total Event-driven claim wake messages received",
+      "# TYPE djs_worker_dispatch_wakes_total counter",
+      `djs_worker_dispatch_wakes_total ${this.dispatchWakes}`,
       "",
     ].join("\n");
   }

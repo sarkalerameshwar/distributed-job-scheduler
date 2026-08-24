@@ -88,7 +88,7 @@ npm run test:e2e -w @djs/worker
 
 ## What this phase does not cover
 
-- Redis/BullMQ as a dispatch layer (later); MySQL remains source of truth for claim state
+- Redis/BullMQ as a durable work queue; MySQL remains source of truth for claim state (Redis may publish **wake** hints — [rate-limit-dispatch.md](./rate-limit-dispatch.md))
 - Exactly-once side effects inside task handlers (handlers should be idempotent; claim is at-most-once per attempt)
 
 Stale lock recovery after worker death is covered in [heartbeat-recovery.md](./heartbeat-recovery.md).

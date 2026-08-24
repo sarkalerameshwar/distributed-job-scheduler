@@ -16,16 +16,17 @@ flowchart LR
 2. `EventsGateway` subscribes and emits into Socket.IO rooms:
    - `org:{organizationId}` for job/queue/DLQ/dashboard events
    - `platform` for worker registry events
-3. The web client connects with the JWT access token, joins its org room, and invalidates React Query caches.
+3. The web client connects with the JWT access token, waits for `realtime.ready`, joins its org room, and invalidates React Query caches.
 
 ## Client protocol
 
 | Direction | Event | Notes |
 |-----------|-------|--------|
-| Server → client | `realtime.ready` | After successful JWT auth |
+| Server → client | `realtime.ready` | After successful JWT auth — **subscribe only after this** (transport `connect` can race auth) |
 | Client → server | `subscribe.org` | Body `{ organizationId }` — requires VIEWER+ membership |
 | Client → server | `unsubscribe.org` | Leave org room |
 | Server → client | `job.updated` / `queue.updated` / `dlq.updated` / `dashboard.refresh` / `worker.updated` | Payload + `at` timestamp |
+| Server → client | `realtime.error` | Auth failure before disconnect |
 
 Auth: `handshake.auth.token` (preferred) or `Authorization: Bearer …`.
 
